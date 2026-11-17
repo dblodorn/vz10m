@@ -35,6 +35,12 @@ Each step has a RATE and a LEVEL. RATE is how fast the envelope moves toward the
 | NOISE1 / NOISE2 | white noise / half noise, half the note's sine |
 | detune | NOTE in semitones, FINE in 100/64-cent steps |
 | PHASE / EXT PHASE depth | a full-level modulator swings the carrier's phase by ±1 cycle |
+| pitch (sourced) | A4 = 442 Hz (manual pp.41, 110); PITCH FIX starts at F#-1, RANGE x1/16 drops 4 octaves (p.35) |
+| pitch envelope (sourced) | levels −63..+63 (stored with 64 = 0, an estimate); WIDE 100 cents/unit, NARROW 25 (p.37); DEPTH and DCO KF LEVEL 0–63 scale it (pp.37–38) |
+| inverted levels | TOTAL LEVEL, ENV DEPTH (DCA), KF LEVEL (DCA) stored 0 = full (riban footnote 5; KILLER ORGAN stores 0 and is full level) |
+| velocity curves | 8 shapes read off the manual's graphs (pp.39, 45, 50); SENS 31 shifts the envelope all the way to silence; VELOCITY RATE adds up to the full rate range on marked steps |
+| key follow | straight lines between the 6 points; KF RATE adds to every rate in stored units |
+| LFOs | rate 0.1–15 Hz, delay 0–5 s then a 50 ms fade-in, vibrato up to 100 cents (SAW/SQUARE rise from the note, TRIANGLE both ways, p.40), tremolo down to silence times AMP SENS/7 (p.47) |
 | PITCH FIX | NOTE + FINE read as an absolute MIDI pitch; x16 multiplies the frequency by 16; OCTAVE doesn't apply |
 
 ## Build order

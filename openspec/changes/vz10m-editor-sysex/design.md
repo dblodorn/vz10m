@@ -27,7 +27,7 @@ Where riban's notes and code disagree, the notes win and the field is marked `un
 - external phase bit order (byte 0)
 - key-follow offsets: the code advances by 1 per step instead of 2
 - DCO envelope depth: 183 in the notes, 182 in one setter
-- the end-step encoding (0–7 taken as a step index)
+- the end-step encoding (0–7 taken as a step index). Since supported: KILLER ORGAN's pitch envelope stores 7, and the manual says its end point starts at step 8 (p.36).
 
 ## Receiving
 

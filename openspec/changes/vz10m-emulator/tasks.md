@@ -17,7 +17,8 @@
 
 ## 4. Modulation
 
-- [ ] 4.1 Pitch envelope and depth/range, DCA and pitch key follow, rate key follow, velocity curves, vibrato, tremolo, env depth, total level.
+- [x] 4.1 Pitch envelope and depth/range, DCA and pitch key follow, rate key follow, velocity curves, vibrato, tremolo, env depth, total level. Semantics from the VZ-10M manual pp.35–50 (see design.md). Verify: `test/modulation.test.ts` checks each against `convert.ts`, plus no allocation with every modulation running. Worst case with all modulation runs at about 6.1% of one core in Node.
+- [x] 4.2 Corrections from the manual: fixed-pitch RANGE is x1/16, not x16, and starts at F#-1 (p.35); A4 = 442 Hz (pp.41, 110). ENV DEPTH and KF LEVEL (DCA) are stored inverted like TOTAL LEVEL; the INIT voice and the editor's panel values follow.
 
 ## 5. Performance and output
 

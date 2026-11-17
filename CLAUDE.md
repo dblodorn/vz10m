@@ -55,5 +55,5 @@ Stub `navigator.requestMIDIAccess` with one fake input/output pair (an `addInitS
 ## Roadmap
 
 1. Editor + SysEx (`openspec/changes/vz10m-editor-sysex`). Open: hardware fixtures, verifying the flagged fields, the send request and bulk transfer.
-2. iPD emulator (`openspec/changes/vz10m-emulator`). Steps 1–3 are done: DCA envelopes, 16-voice pool, SOUND toggle, all waves, detune / fix / octave, and lines (mix, phase, ring, ext phase). Next: pitch envelope, key follow, velocity, LFOs, env depth, total level, then calibration against the hardware.
+2. iPD emulator (`openspec/changes/vz10m-emulator`). Steps 1–4 are done: every voice parameter is played, with semantics from the VZ-10M owner's manual (MENU 1, pp.35–50), and every curve is in `convert.ts` (sourced or ESTIMATE). Next: profiling in the browser, output-device choice, then calibration against the hardware. The manual PDF is at https://static.wikitide.net/circuitbendingwiki/a/ad/Casio_VZ10M_Owners_Manual.pdf (a scan; the MIDI implementation chart it refers to isn't included).
 3. Save voices, operations and banks to MongoDB through dmbk-graphql-api (`dmbkSoundVz*` types, owner-scoped, raw SysEx stored). Copy windchime's Relay pipeline and add Google sign-in.

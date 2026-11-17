@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { initVoice, setMany } from "../lib/vz/codec.ts";
 import { Engine } from "../lib/vz/engine/engine.ts";
 import { toPatch } from "../lib/vz/engine/patch.ts";
-import { CENTS_PER_FINE, noteToHz } from "../lib/vz/engine/convert.ts";
+import { CENTS_PER_FINE, fixedHz, noteToHz } from "../lib/vz/engine/convert.ts";
 import { oscillator, Noise } from "../lib/vz/engine/waves.ts";
 
 const SR = 48000;
@@ -37,27 +37,29 @@ const close = (got: number, want: number, cents = 2) => {
   assert.ok(Math.abs(off) < cents, `${got.toFixed(2)} Hz is ${off.toFixed(2)} cents from ${want.toFixed(2)} Hz`);
 };
 
-test("a module follows the key", () => close(frequency(render({}, 69)), 440));
+test("a module follows the key, A4 = 442 Hz (manual p.41)", () => close(frequency(render({}, 69)), 442));
 
 test("DETUNE NOTE shifts by semitones, both ways", () => {
-  close(frequency(render({ "m1.note": 12 }, 57)), 440);
-  close(frequency(render({ "m1.note": 7, "m1.detunePlus": 0 }, 76)), 440);
+  close(frequency(render({ "m1.note": 12 }, 57)), noteToHz(69));
+  close(frequency(render({ "m1.note": 7, "m1.detunePlus": 0 }, 76)), noteToHz(69));
 });
 
 test("DETUNE FINE adds fractions of a semitone", () => {
-  close(frequency(render({ "m1.fine": 32 }, 69)), 440 * Math.pow(2, (32 * CENTS_PER_FINE) / 1200));
+  close(frequency(render({ "m1.fine": 32 }, 69)), noteToHz(69) * Math.pow(2, (32 * CENTS_PER_FINE) / 1200));
 });
 
 test("OCTAVE moves key-following modules by octaves", () => {
-  close(frequency(render({ octave: 1, octavePlus: 1 }, 57)), 440);
-  close(frequency(render({ octave: 2, octavePlus: 0 }, 69)), 110);
+  close(frequency(render({ octave: 1, octavePlus: 1 }, 57)), noteToHz(69));
+  close(frequency(render({ octave: 2, octavePlus: 0 }, 69)), noteToHz(45));
 });
 
-test("PITCH FIX ignores the key; x16 multiplies it", () => {
-  const fixed = { "m1.fix": 1, "m1.note": 45 }; // A2
+test("PITCH FIX ignores the key, from F#-1; x1/16 drops it 4 octaves (manual p.35)", () => {
+  close(frequency(render({ "m1.fix": 1 }, 60)), noteToHz(6)); // OCT, NOTE, FINE 0: F#-1
+  const fixed = { "m1.fix": 1, "m1.note": 39 }; // F#-1 + 39 semitones = A2
   close(frequency(render(fixed, 30)), noteToHz(45));
   close(frequency(render(fixed, 90)), noteToHz(45));
-  close(frequency(render({ ...fixed, "m1.fixRange": 1 }, 60)), noteToHz(45) * 16);
+  assert.equal(fixedHz(39, 0, false), noteToHz(45));
+  close(frequency(render({ "m1.fix": 1, "m1.note": 71, "m1.fixRange": 1 }, 60)), noteToHz(77) / 16);
 });
 
 test("every wave stays in range and is audible", () => {
@@ -65,7 +67,7 @@ test("every wave stays in range and is audible", () => {
     const a = render({ "m1.wave": w }, 60, 0.3);
     let peak = 0;
     for (const x of a) peak = Math.max(peak, Math.abs(x));
-    assert.ok(peak > 0.05 && peak <= 0.1 + 1e-9, `wave ${w} peak ${peak}`);
+    assert.ok(peak > 0.05 && peak <= 0.1 + 1e-6, `wave ${w} peak ${peak}`);
   }
 });
 

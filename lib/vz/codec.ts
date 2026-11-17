@@ -93,13 +93,14 @@ export function toSyx(list: Uint8Array[], opts?: FrameOptions): Uint8Array {
 
 // ---------- fresh data ----------
 
-// A playable starting voice: M1 sine on, the other seven modules off, a simple organ-style envelope.
-// The values are chosen by this editor, not taken from a VZ factory "initial voice".
+// A playable starting voice: M1 sine on, the other seven modules off, a simple organ-style envelope, everything
+// else neutral (full ENV DEPTH and KF levels, no pitch envelope). The values are chosen by this editor, not taken
+// from a VZ factory "initial voice". ENV DEPTH, KF LEVEL (DCA) and TOTAL LEVEL are stored inverted: 0 is full.
 export function initVoice(name = "INIT VOICE"): Uint8Array {
   let d: Uint8Array = new Uint8Array(VOICE_BYTES);
   for (let m = 1; m <= 8; m++) {
     d = set(d, `m${m}.off`, m === 1 ? 0 : 1);
-    d = set(d, `m${m}.envDepth`, 99);
+    d = set(d, `m${m}.envDepth`, 0);
     d = set(d, `m${m}.envEnd`, 2);
     d = set(d, `m${m}.env1.rate`, 99);
     d = set(d, `m${m}.env1.level`, 127); // stored levels are 0-127 (full scale), not the panel's 0-99
@@ -110,13 +111,15 @@ export function initVoice(name = "INIT VOICE"): Uint8Array {
   }
   for (let s = 1; s <= 6; s++) {
     d = set(d, `dco.kf${s}.key`, 12 + (s - 1) * 21);
+    d = set(d, `dco.kf${s}.level`, 63); // full pitch envelope at every key
     d = set(d, `rate.kf${s}.key`, 12 + (s - 1) * 21);
     for (let m = 1; m <= 8; m++) {
       d = set(d, `m${m}.kf${s}.key`, 12 + (s - 1) * 21);
-      d = set(d, `m${m}.kf${s}.level`, 127);
+      d = set(d, `m${m}.kf${s}.level`, 0);
     }
   }
-  d = set(d, "dco.envEnd", 1);
+  for (let s = 1; s <= 8; s++) d = set(d, `dco.env${s}.level`, 64); // 64 = no pitch change
+  d = set(d, "dco.envEnd", 7);
   d = set(d, "level", 0);
   return setName(d, name);
 }

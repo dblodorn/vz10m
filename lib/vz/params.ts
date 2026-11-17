@@ -41,6 +41,10 @@ function field(key: string, byte: number, mask: number, extra: Extra): Field {
 
 // ---------- voice (336 bytes) ----------
 
+// TOTAL LEVEL, ENV DEPTH (DCA) and KF LEVEL (DCA) are stored inverted: 0x00-0x7F = 99-0 on the panel
+// (riban's notes, footnote 5, shared by all three)
+const inverted = (v: number): number => 99 - Math.round((v * 99) / 127);
+
 function voiceFields(): Field[] {
   const f: Field[] = [];
   // byte 0: external phase (the previous line phase-modulates M4 / M6 / M8)
@@ -57,7 +61,7 @@ function voiceFields(): Field[] {
     const b = 5 + (m - 1) * 2;
     f.push(field(`m${m}.fine`, b, 0xfc, { label: "FINE" }));
     f.push(field(`m${m}.fix`, b, G, { label: "PITCH FIX" }));
-    f.push(field(`m${m}.fixRange`, b, H, { label: "FIX x16" }));
+    f.push(field(`m${m}.fixRange`, b, H, { label: "FIX x1/16" })); // manual p.35: RANGE x1 / x1/16
     f.push(field(`m${m}.detunePlus`, b + 1, A, { label: "DETUNE +" }));
     f.push(field(`m${m}.note`, b + 1, 0x7f, { label: "NOTE" }));
   }
@@ -80,10 +84,10 @@ function voiceFields(): Field[] {
     f.push(field(`m${m}.ampSens`, 165 + m - 1, F | G | H, { label: "AMP SENS" }));
   }
   f.push(field("dco.envEnd", 173, B | C | D, { label: "END STEP" }));
-  f.push(field("level", 174, 0x7f, { label: "LEVEL", display: v => 99 - Math.round((v * 99) / 127) }));
+  f.push(field("level", 174, 0x7f, { label: "LEVEL", display: inverted }));
   for (let m = 1; m <= 8; m++) {
     f.push(field(`m${m}.off`, 175 + m - 1, A, { label: "MODULE OFF" }));
-    f.push(field(`m${m}.envDepth`, 175 + m - 1, 0x7f, { label: "ENV DEPTH" }));
+    f.push(field(`m${m}.envDepth`, 175 + m - 1, 0x7f, { label: "ENV DEPTH", display: inverted }));
   }
   f.push(field("dco.range", 183, A, { label: "WIDE RANGE" }));
   f.push(field("dco.envDepth", 183, 0x3f, { label: "ENV DEPTH" }));
@@ -92,7 +96,7 @@ function voiceFields(): Field[] {
     for (let s = 1; s <= 6; s++) {
       const b = 184 + (m - 1) * 12 + (s - 1) * 2;
       f.push(field(`m${m}.kf${s}.key`, b, 0x7f, { label: "KEY", max: 0x78 }));
-      f.push(field(`m${m}.kf${s}.level`, b + 1, 0x7f, { label: "LEVEL" }));
+      f.push(field(`m${m}.kf${s}.level`, b + 1, 0x7f, { label: "LEVEL", display: inverted }));
     }
   }
   for (let s = 1; s <= 6; s++) {
