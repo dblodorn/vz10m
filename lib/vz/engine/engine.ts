@@ -2,22 +2,23 @@
 // Runs unchanged in Node (tests, scripts/render.ts) and in the AudioWorklet (worklet/vz-processor.ts).
 // render() allocates nothing: all state is in typed arrays sized here.
 //
-// Step 1 of openspec/changes/vz10m-emulator: every module that is on plays a sine at the note's pitch through
-// its DCA envelope, and the modules are mixed. Waves, detune, lines and modulation come in later steps.
+// Steps 1-2 of openspec/changes/vz10m-emulator: every module that is on plays its waveform at its own pitch
+// (the key plus OCTAVE and DETUNE, or a fixed frequency) through its DCA envelope, and the modules are mixed.
+// Lines and modulation come in later steps.
 
 import { LEVEL_MAX, levelToGain, noteToHz, OUTPUT_GAIN } from "./convert.ts";
 import { MODULES, type Patch } from "./patch.ts";
+import { Noise, oscillator } from "./waves.ts";
 
 export const VOICES = 16; // VZ-10M owner's manual p.5: "total 16-note MIDI polyphony"
-
-const SINE_SIZE = 4096;
-const SINE = new Float64Array(SINE_SIZE + 1);
-for (let i = 0; i <= SINE_SIZE; i++) SINE[i] = Math.sin((2 * Math.PI * i) / SINE_SIZE);
 
 // level (0-127, fractional) -> gain, by table: levelToGain is too slow per sample
 const GAIN_STEPS = 32;
 const GAIN = new Float64Array(LEVEL_MAX * GAIN_STEPS + 2);
 for (let i = 0; i < GAIN.length; i++) GAIN[i] = levelToGain(i / GAIN_STEPS);
+
+// a phase step above half a cycle per sample would alias; pitches that high are clamped to it
+const NYQUIST = 0.5;
 
 // when a released note's envelope has already finished above silence, fade it out over this long
 const RELEASE_FADE_S = 0.01;
@@ -41,6 +42,7 @@ export class Engine {
   private readonly step = new Int8Array(VOICES * MODULES); // current step, or DONE
 
   private readonly fadePerSample: number;
+  private readonly noise = new Noise();
 
   constructor(sampleRate: number) {
     this.sampleRate = sampleRate;
@@ -62,11 +64,11 @@ export class Engine {
     this.gate[v] = 1;
     this.started[v] = ++this.counter;
     this.voicePatch[v] = patch;
-    const hz = noteToHz(note);
     for (let m = 0; m < MODULES; m++) {
-      const i = v * MODULES + m;
+      const i = v * MODULES + m, mod = patch.modules[m]!;
+      const hz = mod.fixedHz > 0 ? mod.fixedHz : noteToHz(note + patch.octave + mod.detune);
       this.phase[i] = 0;
-      this.inc[i] = hz / this.sampleRate;
+      this.inc[i] = Math.min(hz / this.sampleRate, NYQUIST);
       this.level[i] = 0;
       this.step[i] = patch.modules[m]!.on ? 0 : DONE;
     }
@@ -118,7 +120,7 @@ export class Engine {
         if (!mod.on) continue;
         const env = mod.env;
         let phase = this.phase[i]!, level = this.level[i]!, step = this.step[i]!;
-        const inc = this.inc[i]!;
+        const inc = this.inc[i]!, wave = mod.wave, noise = this.noise;
         for (let n = 0; n < frames; n++) {
           // envelope: move toward this step's level at its rate; advance when it gets there
           if (step !== DONE) {
@@ -129,9 +131,7 @@ export class Engine {
           } else if (!gate && level > 0) {
             level = Math.max(0, level - this.fadePerSample);
           }
-          // sine by table, linear interpolation
-          const x = phase * SINE_SIZE, k = x | 0, f = x - k;
-          const s = SINE[k]! + (SINE[k + 1]! - SINE[k]!) * f;
+          const s = oscillator(wave, phase, inc, noise);
           const g = GAIN[(level * GAIN_STEPS) | 0]!;
           out[offset + n] = out[offset + n]! + s * g * OUTPUT_GAIN;
           phase += inc;

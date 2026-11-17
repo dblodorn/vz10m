@@ -2,7 +2,7 @@
 // audio loop never touches the field table. Notes keep the Patch they started with.
 
 import { get } from "../codec.ts";
-import { rateToSpeed } from "./convert.ts";
+import { detuneSemitones, fixedHz, octaveSemitones, rateToSpeed } from "./convert.ts";
 
 export const MODULES = 8;
 export const STEPS = 8;
@@ -17,11 +17,14 @@ export interface EnvelopePatch {
 export interface ModulePatch {
   on: boolean;
   wave: number; // 0-7, see WAVEFORMS
+  detune: number; // semitones from the played note (key-following modules)
+  fixedHz: number; // > 0: PITCH FIX, this frequency whatever the key
   env: EnvelopePatch;
 }
 
 export interface Patch {
   modules: ModulePatch[];
+  octave: number; // semitones, voice-wide, for key-following modules
 }
 
 function envelope(data: Uint8Array, prefix: string): EnvelopePatch {
@@ -40,7 +43,14 @@ function envelope(data: Uint8Array, prefix: string): EnvelopePatch {
 export function toPatch(data: Uint8Array): Patch {
   const modules: ModulePatch[] = [];
   for (let m = 1; m <= MODULES; m++) {
-    modules.push({ on: get(data, `m${m}.off`) === 0, wave: get(data, `m${m}.wave`), env: envelope(data, `m${m}`) });
+    const p = `m${m}`, note = get(data, `${p}.note`), fine = get(data, `${p}.fine`);
+    modules.push({
+      on: get(data, `${p}.off`) === 0,
+      wave: get(data, `${p}.wave`),
+      detune: detuneSemitones(get(data, `${p}.detunePlus`) === 1, note, fine),
+      fixedHz: get(data, `${p}.fix`) ? fixedHz(note, fine, get(data, `${p}.fixRange`) === 1) : 0,
+      env: envelope(data, p),
+    });
   }
-  return { modules };
+  return { modules, octave: octaveSemitones(get(data, "octavePlus") === 1, get(data, "octave")) };
 }

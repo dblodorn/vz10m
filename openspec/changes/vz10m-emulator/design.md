@@ -31,8 +31,10 @@ Each step has a RATE and a LEVEL. RATE is how fast the envelope moves toward the
 | rate → speed | exponential: rate 0 crosses the full 0–127 range in about 40 s, rate 127 in about 1 ms |
 | level → gain | 0.75 dB per step below 127; 0 is silence |
 | env depth / total level | same dB scale (total level is stored inverted: 0 is loudest) |
-| SAW1–5 | phase-distorted cosine, distortion rising from SAW1 to SAW5 |
-| NOISE1 / NOISE2 | white noise / white noise mixed with the note's pitch |
+| SAW1–5 | phase-distorted sine, breakpoints 0.32 / 0.22 / 0.14 / 0.08 / 0.04 of the cycle; the bend is never shorter than 2 samples (anti-aliasing) |
+| NOISE1 / NOISE2 | white noise / half noise, half the note's sine |
+| detune | NOTE in semitones, FINE in 100/64-cent steps |
+| PITCH FIX | NOTE + FINE read as an absolute MIDI pitch; x16 multiplies the frequency by 16; OCTAVE doesn't apply |
 
 ## Build order
 

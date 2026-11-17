@@ -9,7 +9,7 @@
 
 ## 2. Oscillators
 
-- [ ] 2.1 SAW1–5, NOISE1/2, detune (note, fine, sign), fixed pitch and x16, octave.
+- [x] 2.1 SAW1–5, NOISE1/2, detune (note, fine, sign), fixed pitch and x16, octave. Verify: `test/oscillators.test.ts` (pitch within 2 cents for detune, fine, octave, fix, x16; SINE < SAW1 < … < SAW5 in brightness; no aliasing jumps at 8 kHz; repeatable noise). KILLER ORGAN's detunes read as an organ registration (−12, 0, +19, +24 semitones), which supports the semitone reading of NOTE.
 
 ## 3. Lines
 
