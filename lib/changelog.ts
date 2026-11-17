@@ -14,6 +14,7 @@ export const TYPES: Record<ChangeKind, ChangeType> = {
 };
 
 export const CHANGELOG: Change[] = [
+  { date: "2026-11-17", type: "FEATURE", text: "AUDIO: choose which audio device the emulator plays through." },
   { date: "2026-11-17", type: "FEATURE", text: "SOUND plays the pitch envelope, vibrato, tremolo, key follow, velocity, ENV DEPTH and TOTAL LEVEL." },
   { date: "2026-11-17", type: "FIX", text: "FIX RANGE is x1/16 (it was shown as x16); ENV DEPTH and DCA KF LEVEL show their panel values; INIT starts at full level." },
   { date: "2026-11-17", type: "FEATURE", text: "SOUND plays the lines: MIX, PHASE and RING, and EXT PHASE from the line before." },

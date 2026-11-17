@@ -20,6 +20,8 @@ const Library = dynamic(() => import("./Library"), { ssr: false });
 
 const CHANNELS = Array.from({ length: 16 }, (_, k) => k + 1);
 const MODULES = [1, 2, 3, 4, 5, 6, 7, 8];
+interface Device { id: string; label: string }
+const deviceName = (d: Device): string => (d.label || "UNNAMED DEVICE").toUpperCase();
 const portName = (p: PortInfo): string => p.name.toUpperCase() + (p.manufacturer ? "   " + p.manufacturer.toUpperCase() : "");
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const noteName = (n: number): string => NOTE_NAMES[n % 12]! + (Math.floor(n / 12) - 1);
@@ -62,6 +64,12 @@ export default function Editor() {
   const [msg, setMsg] = useState("");
   const [sound, setSound] = useState(false); // the emulator in the browser
   const soundRef = useRef(false);
+  // AUDIO: the emulator's output device, as windchime chooses it
+  const [audioOpen, setAudioOpen] = useState(false);
+  const [audioSupported, setAudioSupported] = useState<boolean | null>(null);
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [wantedDevice, setWantedDevice] = useState<Device>({ id: "", label: "" });
+  const [audioMsg, setAudioMsg] = useState("");
   const [library, setLibrary] = useState<Entry[]>([]);
   const restored = useRef(false);
 
@@ -86,6 +94,57 @@ export default function Editor() {
   useEffect(() => { A.setVoice(voice); }, [voice]);
   useEffect(() => { if (restored.current) store.set("channel", channel); }, [channel]);
   useEffect(() => { if (restored.current) store.set("autoSend", autoSend); }, [autoSend]);
+  // ---- audio output device ----
+  const listDevices = useCallback(async () => {
+    try {
+      const all = await navigator.mediaDevices.enumerateDevices();
+      // "default" and "communications" are aliases Chrome adds for the system's own choices
+      setDevices(all.filter(d => d.kind === "audiooutput" && !["default", "communications"].includes(d.deviceId)).map(d => ({ id: d.deviceId, label: d.label })));
+    } catch (e) { setDevices([]); }
+  }, []);
+  useEffect(() => {
+    const ok = A.deviceChoiceSupported() && !!navigator.mediaDevices?.enumerateDevices;
+    setAudioSupported(ok);
+    const w = store.get<Partial<Device> | null>("audioOut", null);
+    if (w && typeof w.id === "string") setWantedDevice({ id: w.id, label: typeof w.label === "string" ? w.label : "" });
+    if (!ok) return;
+    listDevices();
+    navigator.mediaDevices.addEventListener("devicechange", listDevices);
+    return () => navigator.mediaDevices.removeEventListener("devicechange", listDevices);
+  }, [listDevices]);
+  // the device to play on: the wanted one by id, else by name; the system default while it is unplugged. While the
+  // browser hides device names (no media permission yet) the list can't be read, so the remembered id is tried as is.
+  const namesHidden = !!audioSupported && devices.every(d => !d.label);
+  const liveDevice = wantedDevice.id
+    ? devices.find(d => d.id === wantedDevice.id) || (wantedDevice.label ? devices.find(d => d.label === wantedDevice.label) : undefined)
+    : undefined;
+  const deviceGone = !!audioSupported && !!wantedDevice.id && !namesHidden && !liveDevice;
+  const sinkId = !audioSupported || !wantedDevice.id ? "" : liveDevice ? liveDevice.id : namesHidden ? wantedDevice.id : "";
+  useEffect(() => {
+    if (!audioSupported) return;
+    A.setDevice(sinkId).catch(e => setAudioMsg(`THAT DEVICE WOULD NOT OPEN${e instanceof Error && e.message ? `: ${e.message}` : ""}.`));
+  }, [audioSupported, sinkId]);
+  function chooseDevice(v: string) {
+    setAudioMsg("");
+    const d = v === "default" ? { id: "", label: "" } : devices.find(x => x.id === v);
+    if (!d) return;
+    setWantedDevice(d);
+    store.set("audioOut", d);
+  }
+  // Browsers only reveal device names after media permission; asking once for the microphone shows them.
+  async function onShowNames() {
+    setAudioMsg("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop());
+      await listDevices();
+    } catch (e) {
+      setAudioMsg("THE BROWSER KEPT DEVICE NAMES HIDDEN. ALLOW THE MICROPHONE FOR THIS PAGE TO SEE THEM.");
+    }
+  }
+  const deviceValue = !wantedDevice.id ? "default" : liveDevice ? liveDevice.id : "wanted";
+  const deviceText = !wantedDevice.id ? "SYSTEM DEFAULT" : liveDevice ? deviceName(liveDevice) : `${deviceName(wantedDevice)}${namesHidden ? "" : "   DISCONNECTED"}`;
+
   const updateLibrary = useCallback((fn: (list: Entry[]) => Entry[]) => setLibrary(list => { const next = fn(list); saveLibrary(next); return next; }), []);
 
   // ---- MIDI ----
@@ -193,6 +252,38 @@ export default function Editor() {
         <Button onClick={() => dispatch({ type: "redo" })} disabled={!future.length}>REDO</Button>
         <Button onClick={() => edit(V.initVoice())}>INIT</Button>
         <Button aria-pressed={sound} onClick={onSound}>SOUND</Button>
+        <Dialog open={audioOpen} onOpenChange={setAudioOpen}>
+          <DialogTrigger asChild>
+            <Button className="touch:hidden">AUDIO</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <div className="flex items-baseline gap-2">
+                <DialogTitle>AUDIO OUT</DialogTitle>
+                <span className="lead" />
+                <DialogClose asChild><Button>CLOSE</Button></DialogClose>
+              </div>
+              <DialogDescription className={NOTE}>Play the emulator through any audio device. SOUND turns it on.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-3.5">
+              <Param id="a-dev" label="DEVICE" value={deviceGone ? "DISCONNECTED" : sinkId ? "CHOSEN" : "DEFAULT"}>
+                <ParamSelect id="a-dev" value={deviceValue} display={deviceText} onChange={chooseDevice} disabled={!audioSupported}>
+                  <SelectItem value="default">SYSTEM DEFAULT</SelectItem>
+                  {deviceValue === "wanted" && <SelectItem value="wanted" disabled>{deviceText}</SelectItem>}
+                  {!namesHidden && devices.map(d => <SelectItem key={d.id} value={d.id}>{deviceName(d)}</SelectItem>)}
+                </ParamSelect>
+              </Param>
+              {namesHidden && (
+                <div className={ROW}>
+                  <Button onClick={onShowNames}>SHOW DEVICE NAMES</Button>
+                  <span className={`${NOTE} min-w-0`}>The browser shows device names only after you allow the microphone once. Nothing is recorded.</span>
+                </div>
+              )}
+              {audioSupported === false && <p className={NOTE}>THIS BROWSER PLAYS THROUGH THE SYSTEM OUTPUT. CHOOSE THE DEVICE IN YOUR SYSTEM SETTINGS.</p>}
+              {audioMsg && <p className={NOTE}>{audioMsg}</p>}
+            </div>
+          </DialogContent>
+        </Dialog>
         <Button onClick={onSend} disabled={!midiLive}>SEND</Button>
         <Button onClick={() => setLibOpen(true)}>LIBRARY</Button>
         <Dialog open={midiOpen} onOpenChange={setMidiOpen}>

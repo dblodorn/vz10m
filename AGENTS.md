@@ -21,7 +21,7 @@ A browser editor and librarian for the Casio VZ-10M (also reads VZ-1 dumps), ove
   - `patch.ts`: voice bytes → `Patch`, converted once per voice change.
   - `engine.ts`: 16 voices × 8 modules; `render()` must never allocate.
 - `worklet/vz-processor.ts`: bundled by esbuild into `public/vz-worklet.js` (git-ignored). `pnpm worklet` builds it; `dev` and `build` run it first.
-- `lib/audio.ts`: starts audio inside a click and forwards the voice and notes to the worklet.
+- `lib/audio.ts`: starts audio inside a click, forwards the voice and notes to the worklet, and applies the output device (`setSinkId`, typed in `types/audio-sink.d.ts`).
 - `scripts/render.ts`: `node scripts/render.ts voice.syx 60 1 out.wav` renders a note offline.
 - `components/Editor.tsx` is the one client root. `components/Library.tsx` loads through `next/dynamic`. `components/params.tsx` holds the row vocabulary (`Param`, `ParamSlider`, `ParamSelect`, `Check`, `FieldRow`).
 
@@ -55,5 +55,5 @@ Stub `navigator.requestMIDIAccess` with one fake input/output pair (an `addInitS
 ## Roadmap
 
 1. Editor + SysEx (`openspec/changes/vz10m-editor-sysex`). Open: hardware fixtures, verifying the flagged fields, the send request and bulk transfer.
-2. iPD emulator (`openspec/changes/vz10m-emulator`). Steps 1–4 are done: every voice parameter is played, with semantics from the VZ-10M owner's manual (MENU 1, pp.35–50), and every curve is in `convert.ts` (sourced or ESTIMATE). Next: profiling in the browser, output-device choice, then calibration against the hardware. The manual PDF is at https://static.wikitide.net/circuitbendingwiki/a/ad/Casio_VZ10M_Owners_Manual.pdf (a scan; the MIDI implementation chart it refers to isn't included).
+2. iPD emulator (`openspec/changes/vz10m-emulator`). Steps 1–4 are done: every voice parameter is played, with semantics from the VZ-10M owner's manual (MENU 1, pp.35–50), and every curve is in `convert.ts` (sourced or ESTIMATE). Step 5 is done: the real worklet in Chrome runs the worst case at about 5% of one core (no WebAssembly needed), and AUDIO picks the output device. Next: calibration against the hardware (task 6.1). The manual PDF is at https://static.wikitide.net/circuitbendingwiki/a/ad/Casio_VZ10M_Owners_Manual.pdf (a scan; the MIDI implementation chart it refers to isn't included).
 3. Save voices, operations and banks to MongoDB through dmbk-graphql-api (`dmbkSoundVz*` types, owner-scoped, raw SysEx stored). Copy windchime's Relay pipeline and add Google sign-in.

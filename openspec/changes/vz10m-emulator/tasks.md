@@ -22,8 +22,8 @@
 
 ## 5. Performance and output
 
-- [ ] 5.1 Profile 16 notes × 8 modules in the worklet; record the CPU headroom. Move the inner loop to WebAssembly only if it doesn't fit.
-- [ ] 5.2 Output-device choice (`setSinkId`) as in windchime.
+- [x] 5.1 Profile 16 notes × 8 modules in the worklet; record the CPU headroom. Move the inner loop to WebAssembly only if it doesn't fit. Result: the real worklet in Chrome (OfflineAudioContext, 10 s, every line mode, ext phase, pitch envelope, vibrato, tremolo, velocity) renders at 4.8% of one core. WebAssembly isn't needed.
+- [x] 5.2 Output-device choice (`setSinkId`) as in windchime: AUDIO OUT dialog, remembered by id and name, SHOW DEVICE NAMES, the system default while the chosen device is unplugged. Verify: browser check with stubbed devices applies the choice on SOUND and keeps it across a reload.
 
 ## 6. Calibration
 

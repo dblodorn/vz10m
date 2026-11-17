@@ -23,3 +23,10 @@ While SOUND is on, every change to the voice (an edit, undo, redo, a received du
 #### Scenario: Received voice is heard
 - **WHEN** SOUND is on, the VZ sends KILLER ORGAN, and the user presses Z
 - **THEN** the emulator plays KILLER ORGAN
+
+### Requirement: Output device
+An AUDIO button SHALL open an AUDIO OUT dialog with a DEVICE select listing SYSTEM DEFAULT and the browser's audio outputs. It is hidden on touch-only devices. The choice SHALL be remembered by id and name across visits. It is applied when SOUND starts audio, or at once if audio is running. While the chosen device is unplugged, the emulator SHALL play on the system default and the dialog shows the device as DISCONNECTED. When the browser hides device names, a SHOW DEVICE NAMES button SHALL ask for microphone permission once to reveal them, recording nothing. Browsers without output-device selection SHALL show that sound goes to the system output.
+
+#### Scenario: Choose a device
+- **WHEN** the user picks STUDIO INTERFACE in DEVICE, then presses SOUND
+- **THEN** the emulator plays through Studio Interface, and DEVICE still shows it after a reload

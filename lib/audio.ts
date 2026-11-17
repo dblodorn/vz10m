@@ -10,9 +10,21 @@ let ctx: AudioContext | null = null;
 let node: AudioWorkletNode | null = null;
 let starting: Promise<void> | null = null;
 let voice: Uint8Array | null = null; // latest voice, sent again when the worklet comes up
+let sinkId = ""; // chosen output device; "" is the system default
 
 export const supported = (): boolean =>
   typeof window !== "undefined" && typeof AudioContext === "function" && typeof AudioWorkletNode === "function";
+
+// Output-device choice needs AudioContext.setSinkId (Chrome and Edge 110+). Elsewhere sound goes to the system output.
+export const deviceChoiceSupported = (): boolean => typeof AudioContext !== "undefined" && "setSinkId" in AudioContext.prototype;
+
+// "" is the system default. Before audio starts the choice is only remembered; start() applies it. As windchime
+// does, it's applied after the context exists rather than in the constructor, where an id the browser doesn't
+// list breaks the context instead of failing.
+export async function setDevice(id: string): Promise<void> {
+  sinkId = id;
+  if (ctx && deviceChoiceSupported() && ctx.sinkId !== id) await ctx.setSinkId(id);
+}
 
 function post(m: ToWorklet): void {
   if (!node) return;
@@ -33,6 +45,7 @@ export function start(): Promise<void> {
     node = new AudioWorkletNode(c, PROCESSOR, { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
     node.connect(c.destination);
     if (voice) post({ type: "patch", data: voice });
+    if (sinkId && deviceChoiceSupported()) await c.setSinkId(sinkId).catch(() => { /* unplugged: stay on the default */ });
     await resumed;
   })().finally(() => { starting = null; });
   return starting;
