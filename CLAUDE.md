@@ -5,22 +5,27 @@ A browser editor and librarian for the Casio VZ-10M (also reads VZ-1 dumps), ove
 ## Commands
 
 - `pnpm dev`, `pnpm build`
-- `pnpm test`: codec tests (`node --test test/`). Any `.syx` in `fixtures/` must round-trip byte for byte.
+- `pnpm test`: codec tests (`node --test`, which runs the `.ts` files directly). Any `.syx` in `fixtures/` must round-trip byte for byte.
+- `pnpm typecheck`: `tsc --noEmit`. Must be clean; `pnpm build` type-checks too.
 
 ## Layout
 
-- `lib/vz/sysex.js`: framing, nibbles, checksum, splitting `.syx` files.
-- `lib/vz/params.js`: the field tables (byte, mask, range) for the 336-byte voice and the 100-byte operation. The UI and codec are generated from these.
-- `lib/vz/codec.js`: `get` / `set` / `setMany` / `getName` / `setName` on the decoded bytes, `toSysex`, `fromSyx` / `toSyx`, `initVoice`.
-- `lib/midi.js`: Web MIDI in and out with SysEx, ported from windchime's `lib/midiout.js`.
-- `lib/store.js`: localStorage under `vz10m.*`, plus the library.
-- `components/Editor.jsx` is the one client root. `components/Library.jsx` loads through `next/dynamic`. `components/params.jsx` holds the row vocabulary (`Param`, `ParamSlider`, `ParamSelect`, `Check`, `FieldRow`).
+- `lib/vz/sysex.ts`: framing, nibbles, checksum, splitting `.syx` files.
+- `lib/vz/params.ts`: the field tables (byte, mask, range) for the 336-byte voice and the 100-byte operation. The UI and codec are generated from these.
+- `lib/vz/codec.ts`: `get` / `set` / `setMany` / `getName` / `setName` on the decoded bytes, `toSysex`, `fromSyx` / `toSyx`, `initVoice`.
+- `lib/midi.ts`: Web MIDI in and out with SysEx, ported from windchime's `lib/midiout.js`.
+- `lib/store.ts`: localStorage under `vz10m.*`, plus the library.
+- `components/Editor.tsx` is the one client root. `components/Library.tsx` loads through `next/dynamic`. `components/params.tsx` holds the row vocabulary (`Param`, `ParamSlider`, `ParamSelect`, `Check`, `FieldRow`).
 
 ## Constraints and decisions to keep
 
-- **Plain JavaScript.** Keep it JS unless asked.
+- **TypeScript, strict.** All code is TS (the user wants every project in TS), even where it's copied from JS repos like windchime.
+  - `noUncheckedIndexedAccess` is on.
+  - `erasableSyntaxOnly`, so Node can run `lib/` and the tests without a build step. That means no enums and no parameter properties.
+  - Imports inside `lib/` use explicit `.ts` extensions (`allowImportingTsExtensions`), so Node resolves them.
+  - Look fields up with `voiceField(key)`, which throws on an unknown key, rather than indexing `VOICE_FIELD`.
 - **Bytes are the source of truth.** A voice is its decoded `Uint8Array(336)`. Edits go through `set()` and touch only that field's bits; never rebuild a voice from params. This keeps unknown bits intact and is the shape the API will store.
-- **Don't guess the format.** Every byte layout in `params.js` comes from a cited source (`openspec/specs/vz-sysex`, and the change's `design.md`). Conflicting facts are marked `unverified: true` until a hardware dump settles them. The VZ-10M has no dump-request message (owner's manual p.89): selecting a sound on the VZ with EXCLUSIVE=ENA transmits it. Bulk SAVE/LOAD exists (MENU 3-02), but its byte format isn't documented in the manual, so it isn't implemented.
+- **Don't guess the format.** Every byte layout in `params.ts` comes from a cited source (`openspec/specs/vz-sysex`, and the change's `design.md`). Conflicting facts are marked `unverified: true` until a hardware dump settles them. The VZ-10M has no dump-request message (owner's manual p.89): selecting a sound on the VZ with EXCLUSIVE=ENA transmits it. Bulk SAVE/LOAD exists (MENU 3-02), but its byte format isn't documented in the manual, so it isn't implemented.
 - **Raw values in the UI** until the panel-scale conversions are confirmed. Only give a field `display` where a source states the conversion.
 - **SSR:** `lib/*` never touches `window`, `document`, `navigator` or `localStorage` at module top level. Capability checks and storage reads happen in a mount effect. Listeners return unsubscribe functions (strict mode).
 - **MIDI access only on a click** (CONNECT MIDI), with `sysex: true`. Chrome/Edge only in practice; Safari has no Web MIDI.
@@ -30,7 +35,7 @@ A browser editor and librarian for the Casio VZ-10M (also reads VZ-1 dumps), ove
   - `LABEL ..... value` rows with the control beneath
   - dashed 1px focus outline; inverted hover/pressed
   - shadcn: `pnpm dlx shadcn@4.23.0 add <name>`, then strip `rounded-*`, `shadow-*`, `ring-*`, `dark:*`
-- **Changelog:** every shipped change adds a line at the top of `lib/changelog.js`.
+- **Changelog:** every shipped change adds a line at the top of `lib/changelog.ts`.
 - **OpenSpec:** features go through `openspec/changes/<name>/` (proposal, design, tasks, spec deltas) and are archived when done.
 
 ## Testing in a browser

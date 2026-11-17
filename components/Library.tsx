@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import * as V from "../lib/vz/codec";
-import { entry, fromB64 } from "../lib/store";
+import { entry, fromB64, type Entry } from "../lib/store";
 import { NOTE, ROW, SMALL } from "./params";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -10,21 +10,32 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTi
 // The local library: voices and operations kept in this browser, imported from or exported to .syx files.
 // Loaded with next/dynamic the first time LIBRARY is pressed.
 
-const date = iso => iso.slice(0, 10);
+const date = (iso: string): string => iso.slice(0, 10);
 
-function download(bytes, filename) {
-  const url = URL.createObjectURL(new Blob([bytes], { type: "application/octet-stream" }));
+function download(bytes: Uint8Array, filename: string): void {
+  const url = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/octet-stream" }));
   const a = document.createElement("a");
   a.href = url; a.download = filename; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-const fileName = name => (name.trim() || "VZ").replace(/[^\w -]/g, "").replace(/\s+/g, "-") + ".syx";
+const fileName = (name: string): string => (name.trim() || "VZ").replace(/[^\w -]/g, "").replace(/\s+/g, "-") + ".syx";
 
-export default function Library({ open, onOpenChange, library, updateLibrary, voice, onOpen, canSend, onSend }) {
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  library: Entry[];
+  updateLibrary: (fn: (list: Entry[]) => Entry[]) => void;
+  voice: Uint8Array;
+  onOpen: (bytes: Uint8Array) => void;
+  canSend: boolean;
+  onSend: (list: Uint8Array[]) => void;
+}
+
+export default function Library({ open, onOpenChange, library, updateLibrary, voice, onOpen, canSend, onSend }: Props) {
   const [msg, setMsg] = useState("");
   const [query, setQuery] = useState("");
-  const [confirming, setConfirming] = useState(null); // id awaiting a second press of DELETE
-  const fileRef = useRef(null);
+  const [confirming, setConfirming] = useState<string | null>(null); // id awaiting a second press of DELETE
+  const fileRef = useRef<HTMLInputElement>(null);
 
   function saveCurrent() {
     const name = V.getName(voice) || "UNTITLED";
@@ -32,9 +43,9 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
     setMsg(`SAVED ${name}.`);
   }
 
-  async function onFiles(files) {
+  async function onFiles(files: File[]) {
     let added = 0, bad = 0;
-    const items = [];
+    const items: Entry[] = [];
     for (const f of files) {
       const { items: found, errors } = V.fromSyx(new Uint8Array(await f.arrayBuffer()));
       found.forEach(i => items.push(entry(i.kind, i.name || "UNTITLED", i.data)));
@@ -60,7 +71,7 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
           <Button onClick={saveCurrent}>SAVE CURRENT</Button>
           <Button onClick={() => fileRef.current && fileRef.current.click()}>IMPORT .SYX</Button>
           <Button disabled={!library.length} onClick={() => download(V.toSyx(library.map(e => fromB64(e.data))), "vz10m-library.syx")}>EXPORT ALL</Button>
-          <input ref={fileRef} type="file" accept=".syx,application/octet-stream" multiple hidden onChange={e => { onFiles([...e.target.files]); e.target.value = ""; }} />
+          <input ref={fileRef} type="file" accept=".syx,application/octet-stream" multiple hidden onChange={e => { onFiles([...(e.target.files ?? [])]); e.target.value = ""; }} />
         </div>
         {msg && <p role="status" className={NOTE}>{msg}</p>}
         <label className="flex items-center gap-2">

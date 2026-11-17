@@ -11,22 +11,38 @@
 
 const A = 0x80, B = 0x40, C = 0x20, D = 0x10, E = 0x08, F = 0x04, G = 0x02, H = 0x01;
 
-export const WAVEFORMS = ["SINE", "SAW1", "SAW2", "SAW3", "SAW4", "SAW5", "NOISE1", "NOISE2"];
-export const LINE_MODES = ["MIX", "PHASE", "RING"];
-export const LFO_WAVES = ["TRIANGLE", "SAW UP", "SAW DOWN", "SQUARE"];
-export const LINES = ["A", "B", "C", "D"];
+export const WAVEFORMS = ["SINE", "SAW1", "SAW2", "SAW3", "SAW4", "SAW5", "NOISE1", "NOISE2"] as const;
+export const LINE_MODES = ["MIX", "PHASE", "RING"] as const;
+export const LFO_WAVES = ["TRIANGLE", "SAW UP", "SAW DOWN", "SQUARE"] as const;
+export const LINES = ["A", "B", "C", "D"] as const;
+export type Line = (typeof LINES)[number];
 
-const shiftOf = mask => { let s = 0; while (!(mask & (1 << s))) s++; return s; };
+export interface Field {
+  key: string;
+  byte: number;
+  mask: number;
+  shift: number;
+  min: number;
+  max: number;
+  label: string;
+  options?: readonly string[];
+  unverified?: boolean;
+  // stored value -> what the VZ panel shows, only where a source states the conversion
+  display?: (v: number) => number;
+}
+type Extra = Partial<Omit<Field, "key" | "byte" | "mask" | "shift">> & { label: string };
 
-function field(key, byte, mask, extra = {}) {
+const shiftOf = (mask: number): number => { let s = 0; while (!(mask & (1 << s))) s++; return s; };
+
+function field(key: string, byte: number, mask: number, extra: Extra): Field {
   const shift = shiftOf(mask);
   return { key, byte, mask, shift, min: 0, max: mask >> shift, ...extra };
 }
 
 // ---------- voice (336 bytes) ----------
 
-function voiceFields() {
-  const f = [];
+function voiceFields(): Field[] {
+  const f: Field[] = [];
   // byte 0: external phase (the previous line phase-modulates M4 / M6 / M8)
   f.push(field("m4.extPhase", 0, F, { label: "EXT PHASE", unverified: true }));
   f.push(field("m6.extPhase", 0, G, { label: "EXT PHASE", unverified: true }));
@@ -110,11 +126,11 @@ function voiceFields() {
 
 // ---------- operation (100 bytes) ----------
 
-const CONTROLLERS = [["at", 32], ["wheel1", 34], ["wheel2", 36], ["foot", 38]];
-const CONTROL_TARGETS = [["envBias", A], ["tremRate", B], ["tremDepth", C], ["portaTime", D], ["pitchDown", E], ["pitchUp", F], ["vibRate", G], ["vibDepth", H]];
+const CONTROLLERS: [string, number][] = [["at", 32], ["wheel1", 34], ["wheel2", 36], ["foot", 38]];
+const CONTROL_TARGETS: [string, number][] = [["envBias", A], ["tremRate", B], ["tremDepth", C], ["portaTime", D], ["pitchDown", E], ["pitchUp", F], ["vibRate", G], ["vibDepth", H]];
 
-function operationFields() {
-  const f = [];
+function operationFields(): Field[] {
+  const f: Field[] = [];
   f.push(field("mode", 0, 0x0f, { label: "MODE", unverified: true }));
   f.push(field("crossfade", 15, G, { label: "POSITIONAL XFADE" }));
   f.push(field("split1", 16, 0x7f, { label: "SPLIT", min: 0x0c, max: 0x78 }));
@@ -152,9 +168,17 @@ function operationFields() {
 
 export const VOICE_FIELDS = voiceFields();
 export const OPERATION_FIELDS = operationFields();
-export const VOICE_NAME = { offset: 322, length: 12 };
-export const OPERATION_NAME = { offset: 1, length: 12 };
+export interface NameSlot { offset: number; length: number }
+export const VOICE_NAME: NameSlot = { offset: 322, length: 12 };
+export const OPERATION_NAME: NameSlot = { offset: 1, length: 12 };
 
-const index = list => Object.fromEntries(list.map(f => [f.key, f]));
+const index = (list: Field[]): Record<string, Field> => Object.fromEntries(list.map(f => [f.key, f]));
 export const VOICE_FIELD = index(VOICE_FIELDS);
 export const OPERATION_FIELD = index(OPERATION_FIELDS);
+
+// Look up a field the UI knows exists; an unknown key is a programming error, so it throws.
+export function voiceField(key: string): Field {
+  const f = VOICE_FIELD[key];
+  if (!f) throw new Error(`Unknown voice parameter ${key}.`);
+  return f;
+}

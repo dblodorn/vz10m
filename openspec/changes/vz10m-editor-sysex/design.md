@@ -2,7 +2,7 @@
 
 ## Bytes are the source of truth
 
-A voice is held as its 336 decoded bytes (an operation as 100). Fields are read and written through `lib/vz/params.js`: key, byte, mask, range. Every edit writes only that field's bits, so bits this editor doesn't model (unused bytes 334–335, the low bits of byte 173, anything misdocumented) come back unchanged. A decode → encode of a dump is byte-for-byte identical, and the tests check this for every field and every fixture.
+A voice is held as its 336 decoded bytes (an operation as 100). Fields are read and written through `lib/vz/params.ts`: key, byte, mask, range. Every edit writes only that field's bits, so bits this editor doesn't model (unused bytes 334–335, the low bits of byte 173, anything misdocumented) come back unchanged. A decode → encode of a dump is byte-for-byte identical, and the tests check this for every field and every fixture.
 
 This is also the storage shape for milestone 3. The API stores the bytes (base64) plus derived params for search, so fixing a field's documentation later never invalidates saved data.
 
@@ -23,7 +23,7 @@ This is also the storage shape for milestone 3. The API stores the bytes (base64
 | Multi-channel mode data (type `02`?) | VZ-10M manual p.89 lists the message; riban names type 2 | **format unknown**, not implemented |
 | Bulk SAVE/LOAD (64 sounds and/or 64 operations), started from MENU 3-02 | VZ-10M manual p.73, p.89 | exists; **byte format unknown**. riban's `70`–`74` handshake is a stub, and the manual points to a separate "MIDI implementation chart" not in the PDF |
 
-Where riban's notes and code disagree, the notes win and the field is marked `unverified` in `params.js`:
+Where riban's notes and code disagree, the notes win and the field is marked `unverified` in `params.ts`:
 - external phase bit order (byte 0)
 - key-follow offsets: the code advances by 1 per step instead of 2
 - DCO envelope depth: 183 in the notes, 182 in one setter

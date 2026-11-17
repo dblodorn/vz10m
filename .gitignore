@@ -5,3 +5,6 @@ out
 .env*
 *.log
 .DS_Store
+# TypeScript
+next-env.d.ts
+*.tsbuildinfo

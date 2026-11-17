@@ -6,8 +6,9 @@ import Link from "next/link";
 import * as M from "../lib/midi";
 import * as V from "../lib/vz/codec";
 import { TYPE } from "../lib/vz/sysex";
-import { LINES, LINE_MODES, VOICE_FIELD } from "../lib/vz/params";
-import { store, toB64, fromB64, loadLibrary, saveLibrary, entry } from "../lib/store";
+import type { Dir, LivePort, PortInfo, Status } from "../lib/midi";
+import { LINES, LINE_MODES, WAVEFORMS, voiceField } from "../lib/vz/params";
+import { store, toB64, fromB64, loadLibrary, saveLibrary, entry, type Entry } from "../lib/store";
 import EnvelopeEditor from "./EnvelopeEditor";
 import { Check, FieldRow, NOTE, Param, ParamSelect, ROW, SMALL } from "./params";
 import { Button } from "@/components/ui/button";
@@ -18,49 +19,57 @@ const Library = dynamic(() => import("./Library"), { ssr: false });
 
 const CHANNELS = Array.from({ length: 16 }, (_, k) => k + 1);
 const MODULES = [1, 2, 3, 4, 5, 6, 7, 8];
-const portName = p => p.name.toUpperCase() + (p.manufacturer ? "   " + p.manufacturer.toUpperCase() : "");
+const portName = (p: PortInfo): string => p.name.toUpperCase() + (p.manufacturer ? "   " + p.manufacturer.toUpperCase() : "");
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const noteName = n => NOTE_NAMES[n % 12] + (Math.floor(n / 12) - 1);
+const noteName = (n: number): string => NOTE_NAMES[n % 12]! + (Math.floor(n / 12) - 1);
 // computer keys for auditioning on the VZ: the bottom letter row plays C4 to C5
-const KEYS = { z: 60, s: 61, x: 62, d: 63, c: 64, v: 65, g: 66, b: 67, h: 68, n: 69, j: 70, m: 71, ",": 72 };
+const KEYS: Record<string, number> = { z: 60, s: 61, x: 62, d: 63, c: 64, v: 65, g: 66, b: 67, h: 68, n: 69, j: 70, m: 71, ",": 72 };
 
 // Undo history: every edit pushes the whole voice (336 bytes), capped.
 const LIMIT = 200;
-function history(state, action) {
+interface History { past: Uint8Array[]; voice: Uint8Array; future: Uint8Array[] }
+type Action = { type: "edit"; voice: Uint8Array } | { type: "undo" } | { type: "redo" };
+
+function history(state: History, action: Action): History {
   switch (action.type) {
     case "edit": {
       const past = [...state.past, state.voice].slice(-LIMIT);
       return { past, voice: action.voice, future: [] };
     }
-    case "undo": return state.past.length ? { past: state.past.slice(0, -1), voice: state.past.at(-1), future: [state.voice, ...state.future] } : state;
-    case "redo": return state.future.length ? { past: [...state.past, state.voice], voice: state.future[0], future: state.future.slice(1) } : state;
-    default: return state;
+    case "undo": {
+      const prev = state.past.at(-1);
+      return prev ? { past: state.past.slice(0, -1), voice: prev, future: [state.voice, ...state.future] } : state;
+    }
+    case "redo": {
+      const next = state.future[0];
+      return next ? { past: [...state.past, state.voice], voice: next, future: state.future.slice(1) } : state;
+    }
   }
 }
 
 export default function Editor() {
-  const [{ voice, past, future }, dispatch] = useReducer(history, null, () => ({ voice: V.initVoice(), past: [], future: [] }));
+  const [{ voice, past, future }, dispatch] = useReducer(history, null, (): History => ({ voice: V.initVoice(), past: [], future: [] }));
   const [moduleSel, setModuleSel] = useState(1);
   const [midiOpen, setMidiOpen] = useState(false);
   const [libOpen, setLibOpen] = useState(false);
-  const [midiSupported, setMidiSupported] = useState(null);
-  const [midi, setMidi] = useState(() => M.status());
-  const [inputs, setInputs] = useState([]);
-  const [outputs, setOutputs] = useState([]);
+  const [midiSupported, setMidiSupported] = useState<boolean | null>(null);
+  const [midi, setMidi] = useState<Status>(() => M.status());
+  const [inputs, setInputs] = useState<PortInfo[]>([]);
+  const [outputs, setOutputs] = useState<PortInfo[]>([]);
   const [channel, setChannel] = useState(1);
   const [autoSend, setAutoSend] = useState(false);
   const [msg, setMsg] = useState("");
-  const [library, setLibrary] = useState([]);
+  const [library, setLibrary] = useState<Entry[]>([]);
   const restored = useRef(false);
 
-  const edit = useCallback(next => dispatch({ type: "edit", voice: next }), []);
-  const setValues = useCallback(values => edit(V.setMany(voice, values)), [edit, voice]);
-  const val = key => V.get(voice, key);
+  const edit = useCallback((next: Uint8Array) => dispatch({ type: "edit", voice: next }), []);
+  const setValues = useCallback((values: Record<string, number>) => edit(V.setMany(voice, values)), [edit, voice]);
+  const val = (key: string): number => V.get(voice, key);
 
   // ---- persistence: read after mount so the server render matches ----
   useEffect(() => {
     setMidiSupported(M.supported());
-    const saved = store.get("voice", null);
+    const saved = store.get<string | null>("voice", null);
     if (saved) { try { dispatch({ type: "edit", voice: fromB64(saved) }); } catch (e) {} }
     setChannel(store.get("channel", 1));
     setAutoSend(store.get("autoSend", false));
@@ -72,7 +81,7 @@ export default function Editor() {
   useEffect(() => { if (restored.current) store.set("voice", toB64(voice)); }, [voice]);
   useEffect(() => { if (restored.current) store.set("channel", channel); }, [channel]);
   useEffect(() => { if (restored.current) store.set("autoSend", autoSend); }, [autoSend]);
-  const updateLibrary = useCallback(fn => setLibrary(list => { const next = fn(list); saveLibrary(next); return next; }), []);
+  const updateLibrary = useCallback((fn: (list: Entry[]) => Entry[]) => setLibrary(list => { const next = fn(list); saveLibrary(next); return next; }), []);
 
   // ---- MIDI ----
   useEffect(() => M.onChange(() => {
@@ -85,7 +94,7 @@ export default function Editor() {
   }), []);
 
   useEffect(() => M.onSysex(m => {
-    if (m.error) { setMsg(`RECEIVED A DAMAGED DUMP: ${m.error}`); return; }
+    if (m.error !== undefined) { setMsg(`RECEIVED A DAMAGED DUMP: ${m.error}`); return; }
     const name = V.getName(m.data);
     if (m.type === TYPE.VOICE) {
       dispatch({ type: "edit", voice: m.data });
@@ -105,7 +114,7 @@ export default function Editor() {
 
   async function onConnect() {
     setMsg("");
-    try { await M.connect(); } catch (e) { setMsg(e && e.message ? e.message : "MIDI access was refused."); }
+    try { await M.connect(); } catch (e) { setMsg(e instanceof Error && e.message ? e.message : "MIDI access was refused."); }
   }
   async function onSend() {
     const ok = await M.sendSysex(V.toSysex(voice, { channel }));
@@ -114,15 +123,15 @@ export default function Editor() {
 
   // audition from the computer keyboard, unless typing in a field
   useEffect(() => {
-    const held = new Set();
-    const typing = e => e.target.closest && e.target.closest("input, textarea, [role=combobox], [role=slider], [role=listbox]");
-    const down = e => {
+    const held = new Set<number>();
+    const typing = (e: KeyboardEvent): boolean => e.target instanceof Element && !!e.target.closest("input, textarea, [role=combobox], [role=slider], [role=listbox]");
+    const down = (e: KeyboardEvent) => {
       if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || typing(e)) return;
       const n = KEYS[e.key.toLowerCase()];
       if (n === undefined || held.has(n)) return;
       held.add(n); M.noteOn(channel, n);
     };
-    const up = e => { const n = KEYS[e.key.toLowerCase()]; if (n !== undefined && held.delete(n)) M.noteOff(channel, n); };
+    const up = (e: KeyboardEvent) => { const n = KEYS[e.key.toLowerCase()]; if (n !== undefined && held.delete(n)) M.noteOff(channel, n); };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
     return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); held.forEach(n => M.noteOff(channel, n)); };
@@ -130,8 +139,8 @@ export default function Editor() {
 
   // undo / redo: Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z
   useEffect(() => {
-    const onKey = e => {
-      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z" || (e.target.closest && e.target.closest("input"))) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z" || (e.target instanceof Element && e.target.closest("input"))) return;
       e.preventDefault();
       dispatch({ type: e.shiftKey ? "redo" : "undo" });
     };
@@ -183,7 +192,7 @@ export default function Editor() {
                 </div>
               ) : (
                 <>
-                  {[["in", "MIDI IN", inputs, midi.input], ["out", "MIDI OUT", outputs, midi.output]].map(([dir, label, ports, live]) => (
+                  {([["in", "MIDI IN", inputs, midi.input], ["out", "MIDI OUT", outputs, midi.output]] as [Dir, string, PortInfo[], LivePort | null][]).map(([dir, label, ports, live]) => (
                     <Param key={dir} id={`m-${dir}`} label={label} value={live ? "OPEN" : "NONE"}>
                       <ParamSelect id={`m-${dir}`} value={live ? live.id : "none"} display={live ? portName(live) : "NONE"} onChange={v => M.select(dir, v === "none" ? "" : v)}>
                         <SelectItem value="none">NONE</SelectItem>
@@ -233,14 +242,14 @@ export default function Editor() {
                     <button key={n} aria-pressed={moduleSel === n} onClick={() => setModuleSel(n)}
                       className={`grid cursor-pointer gap-0.5 border border-foreground bg-background p-1.5 text-left text-foreground hover:bg-foreground hover:text-background aria-pressed:bg-foreground aria-pressed:text-background focus-visible:outline-1 focus-visible:outline-offset-3 focus-visible:outline-dashed ${on ? "" : "opacity-40"}`}>
                       <span className="tracking-[.08em]">M{n}</span>
-                      <span className={SMALL}>{VOICE_FIELD[`m${n}.wave`].options[val(`m${n}.wave`)]}</span>
+                      <span className={SMALL}>{WAVEFORMS[val(`m${n}.wave`)]}</span>
                       <span className={SMALL}>{on ? "ON" : "OFF"}</span>
                     </button>
                   );
                 })}
               </div>
-              {VOICE_FIELD[`m${pair[1]}.extPhase`] && (
-                <FieldRow field={VOICE_FIELD[`m${pair[1]}.extPhase`]} label="EXT PHASE FROM PREVIOUS LINE" value={val(`m${pair[1]}.extPhase`)} onChange={v => setValues({ [`m${pair[1]}.extPhase`]: v })} />
+              {l > 0 && (
+                <FieldRow id={`ext-${L}`} field={voiceField(`m${pair[1]}.extPhase`)} label="EXT PHASE FROM PREVIOUS LINE" value={val(`m${pair[1]}.extPhase`)} onChange={v => setValues({ [`m${pair[1]}.extPhase`]: v })} />
               )}
             </div>
           );
@@ -254,20 +263,20 @@ export default function Editor() {
             <span className="lead" />
             <Check checked={val(`${m}.off`) === 0} onChange={v => setValues({ [`${m}.off`]: v ? 0 : 1 })}>ON</Check>
           </div>
-          <FieldRow id="wave" field={VOICE_FIELD[`${m}.wave`]} value={val(`${m}.wave`)} onChange={v => setValues({ [`${m}.wave`]: v })} />
+          <FieldRow id="wave" field={voiceField(`${m}.wave`)} value={val(`${m}.wave`)} onChange={v => setValues({ [`${m}.wave`]: v })} />
           <Param id="detune" label="DETUNE" value={`${val(`${m}.detunePlus`) ? "+" : "-"}${val(`${m}.note`)} NOTES  ${val(`${m}.fine`)} FINE`}>
             <div className="mt-1 grid gap-2">
-              <FieldRow id="note" field={VOICE_FIELD[`${m}.note`]} value={val(`${m}.note`)} onChange={v => setValues({ [`${m}.note`]: v })} />
-              <FieldRow id="fine" field={VOICE_FIELD[`${m}.fine`]} value={val(`${m}.fine`)} onChange={v => setValues({ [`${m}.fine`]: v })} />
+              <FieldRow id="note" field={voiceField(`${m}.note`)} value={val(`${m}.note`)} onChange={v => setValues({ [`${m}.note`]: v })} />
+              <FieldRow id="fine" field={voiceField(`${m}.fine`)} value={val(`${m}.fine`)} onChange={v => setValues({ [`${m}.fine`]: v })} />
               <div className="flex flex-wrap gap-x-4 gap-y-1.5">
                 {["detunePlus", "fix", "fixRange"].map(k => (
-                  <FieldRow key={k} field={VOICE_FIELD[`${m}.${k}`]} value={val(`${m}.${k}`)} onChange={v => setValues({ [`${m}.${k}`]: v })} />
+                  <FieldRow key={k} id={k} field={voiceField(`${m}.${k}`)} value={val(`${m}.${k}`)} onChange={v => setValues({ [`${m}.${k}`]: v })} />
                 ))}
               </div>
             </div>
           </Param>
           {["envDepth", "ampSens", "velCurve", "velSens"].map(k => (
-            <FieldRow key={k} id={k} field={VOICE_FIELD[`${m}.${k}`]} value={val(`${m}.${k}`)} onChange={v => setValues({ [`${m}.${k}`]: v })} />
+            <FieldRow key={k} id={k} field={voiceField(`${m}.${k}`)} value={val(`${m}.${k}`)} onChange={v => setValues({ [`${m}.${k}`]: v })} />
           ))}
           <Param id="dca-env" label="DCA ENVELOPE" value={`M${moduleSel}`} />
           <EnvelopeEditor id="dca" data={voice} prefix={m} onChange={setValues} />
@@ -279,19 +288,19 @@ export default function Editor() {
             <h2 className="m-0 text-[11px] font-normal tracking-[.08em]">VOICE</h2>
             <span className="lead" />
           </div>
-          <FieldRow id="level" field={VOICE_FIELD.level} label="TOTAL LEVEL" value={val("level")} onChange={v => setValues({ level: v })} />
+          <FieldRow id="level" field={voiceField("level")} label="TOTAL LEVEL" value={val("level")} onChange={v => setValues({ level: v })} />
           <Param id="octave" label="OCTAVE" value={`${val("octavePlus") ? "+" : "-"}${val("octave")}`}>
             <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-              <FieldRow field={VOICE_FIELD.octavePlus} value={val("octavePlus")} onChange={v => setValues({ octavePlus: v })} />
+              <FieldRow id="octave-plus" field={voiceField("octavePlus")} value={val("octavePlus")} onChange={v => setValues({ octavePlus: v })} />
             </div>
-            <FieldRow id="octave-n" field={VOICE_FIELD.octave} value={val("octave")} onChange={v => setValues({ octave: v })} />
+            <FieldRow id="octave-n" field={voiceField("octave")} value={val("octave")} onChange={v => setValues({ octave: v })} />
           </Param>
           <Param id="dco-env" label="PITCH (DCO) ENVELOPE" value={val("dco.range") ? "WIDE" : "NARROW"} />
           <EnvelopeEditor id="dco" data={voice} prefix="dco" onChange={setValues} />
-          <FieldRow id="dco-depth" field={VOICE_FIELD["dco.envDepth"]} value={val("dco.envDepth")} onChange={v => setValues({ "dco.envDepth": v })} />
-          <FieldRow field={VOICE_FIELD["dco.range"]} value={val("dco.range")} onChange={v => setValues({ "dco.range": v })} />
+          <FieldRow id="dco-depth" field={voiceField("dco.envDepth")} value={val("dco.envDepth")} onChange={v => setValues({ "dco.envDepth": v })} />
+          <FieldRow id="dco-range" field={voiceField("dco.range")} value={val("dco.range")} onChange={v => setValues({ "dco.range": v })} />
           {["dco.velCurve", "dco.velSens", "rate.velCurve", "rate.velSens"].map(k => (
-            <FieldRow key={k} id={k.replace(".", "-")} field={VOICE_FIELD[k]} label={`${k.startsWith("dco") ? "PITCH" : "RATE"} ${VOICE_FIELD[k].label}`} value={val(k)} onChange={v => setValues({ [k]: v })} />
+            <FieldRow key={k} id={k.replace(".", "-")} field={voiceField(k)} label={`${k.startsWith("dco") ? "PITCH" : "RATE"} ${voiceField(k).label}`} value={val(k)} onChange={v => setValues({ [k]: v })} />
           ))}
           <KeyFollow id="dco-kf" title="PITCH KEY FOLLOW" prefix="dco" second="level" voice={voice} onChange={setValues} />
           <KeyFollow id="rate-kf" title="RATE KEY FOLLOW" prefix="rate" second="rate" voice={voice} onChange={setValues} />
@@ -299,7 +308,7 @@ export default function Editor() {
             <div key={p} role="group" aria-label={title} className="grid gap-2.5 border border-foreground p-2.5">
               <span className="tracking-[.08em]">{title}</span>
               {["wave", "depth", "rate", "delay", "multi"].map(k => (
-                <FieldRow key={k} id={`${p}-${k}`} field={VOICE_FIELD[`${p}.${k}`]} value={val(`${p}.${k}`)} onChange={v => setValues({ [`${p}.${k}`]: v })} />
+                <FieldRow key={k} id={`${p}-${k}`} field={voiceField(`${p}.${k}`)} value={val(`${p}.${k}`)} onChange={v => setValues({ [`${p}.${k}`]: v })} />
               ))}
             </div>
           ))}
@@ -324,11 +333,20 @@ export default function Editor() {
   );
 }
 
+interface KeyFollowProps {
+  id: string;
+  title: string;
+  prefix: string; // "m1".."m8", "dco" or "rate"
+  second: "level" | "rate"; // what each breakpoint sets besides its key
+  voice: Uint8Array;
+  onChange: (values: Record<string, number>) => void;
+}
+
 // six (key, value) breakpoints; keys are MIDI note numbers
-function KeyFollow({ id, title, prefix, second, voice, onChange }) {
+function KeyFollow({ id, title, prefix, second, voice, onChange }: KeyFollowProps) {
   const [step, setStep] = useState(1);
   const key = `${prefix}.kf${step}.key`, other = `${prefix}.kf${step}.${second}`;
-  const pts = [1, 2, 3, 4, 5, 6].map(s => ({ s, key: V.get(voice, `${prefix}.kf${s}.key`), v: V.get(voice, `${prefix}.kf${s}.${second}`), max: VOICE_FIELD[`${prefix}.kf${s}.${second}`].max }));
+  const pts = [1, 2, 3, 4, 5, 6].map(s => ({ s, key: V.get(voice, `${prefix}.kf${s}.key`), v: V.get(voice, `${prefix}.kf${s}.${second}`), max: voiceField(`${prefix}.kf${s}.${second}`).max }));
   const W = 320, H = 60;
   return (
     <div role="group" aria-label={title} className="grid gap-2">
@@ -345,8 +363,8 @@ function KeyFollow({ id, title, prefix, second, voice, onChange }) {
           </button>
         ))}
       </div>
-      <FieldRow id={`${id}-key`} field={VOICE_FIELD[key]} label={`STEP ${step} KEY`} value={V.get(voice, key)} onChange={v => onChange({ [key]: v })} />
-      <FieldRow id={`${id}-v`} field={VOICE_FIELD[other]} label={`STEP ${step} ${VOICE_FIELD[other].label}`} value={V.get(voice, other)} onChange={v => onChange({ [other]: v })} />
+      <FieldRow id={`${id}-key`} field={voiceField(key)} label={`STEP ${step} KEY`} value={V.get(voice, key)} onChange={v => onChange({ [key]: v })} />
+      <FieldRow id={`${id}-v`} field={voiceField(other)} label={`STEP ${step} ${voiceField(other).label}`} value={V.get(voice, other)} onChange={v => onChange({ [other]: v })} />
     </div>
   );
 }

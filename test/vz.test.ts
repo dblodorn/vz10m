@@ -2,9 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { checksum, frame, parse, splitMessages, nibblize, denibblize, TYPE, messageLength } from "../lib/vz/sysex.js";
-import { get, set, getName, setName, toParams, toSysex, fromSyx, toSyx, initVoice, initOperation } from "../lib/vz/codec.js";
-import { VOICE_FIELDS, OPERATION_FIELDS } from "../lib/vz/params.js";
+import { checksum, frame, parse, splitMessages, nibblize, denibblize, TYPE, messageLength } from "../lib/vz/sysex.ts";
+import { get, set, getName, setName, toParams, toSysex, fromSyx, toSyx, initVoice, initOperation } from "../lib/vz/codec.ts";
+import { VOICE_FIELDS, OPERATION_FIELDS } from "../lib/vz/params.ts";
 
 const FIXTURES = new URL("../fixtures/", import.meta.url).pathname;
 
@@ -36,7 +36,7 @@ test("operation framing is 209 bytes", () => {
 
 test("a damaged dump is rejected", () => {
   const msg = toSysex(initVoice());
-  msg[100] ^= 1;
+  msg[100] = msg[100]! ^ 1;
   assert.throws(() => parse(msg), /Checksum/);
 });
 
@@ -48,7 +48,7 @@ test("every voice field writes only its own bits", () => {
     assert.equal(get(out, f.key), v, f.key);
     for (let i = 0; i < 336; i++) {
       const allowed = i === f.byte ? f.mask : 0;
-      assert.equal(out[i] & ~allowed & 0xff, base[i] & ~allowed & 0xff, `${f.key} touched byte ${i}`);
+      assert.equal(out[i]! & ~allowed & 0xff, base[i]! & ~allowed & 0xff, `${f.key} touched byte ${i}`);
     }
   }
 });
@@ -80,7 +80,7 @@ test("names", () => {
 test(".syx files: several messages, one bad", () => {
   const a = setName(initVoice(), "ONE"), b = setName(initOperation(), "TWO");
   const bytes = toSyx([a, b]);
-  const bad = toSysex(initVoice()); bad[50] ^= 1;
+  const bad = toSysex(initVoice()); bad[50] = bad[50]! ^ 1;
   const file = new Uint8Array([...bytes, ...bad]);
   assert.equal(splitMessages(file).length, 3);
   const { items, errors } = fromSyx(file);
