@@ -1,13 +1,18 @@
-// The iPD engine: a pool of 16 voices x 8 modules, rendered sample by sample into a mono buffer.
+// The iPD engine: a pool of 16 voices x 8 modules, rendered in blocks into a mono buffer.
 // Runs unchanged in Node (tests, scripts/render.ts) and in the AudioWorklet (worklet/vz-processor.ts).
 // render() allocates nothing: all state is in typed arrays sized here.
 //
-// Steps 1-2 of openspec/changes/vz10m-emulator: every module that is on plays its waveform at its own pitch
-// (the key plus OCTAVE and DETUNE, or a fixed frequency) through its DCA envelope, and the modules are mixed.
-// Lines and modulation come in later steps.
+// Steps 1-3 of openspec/changes/vz10m-emulator. Every module that is on plays its waveform at its own pitch
+// (the key plus OCTAVE and DETUNE, or a fixed frequency) through its DCA envelope. Modules pair into lines
+// A-D (M1+M2 ... M7+M8). The second module always feeds the line:
+//   MIX    M1 + M2
+//   PHASE  M2 with M1 added to its phase
+//   RING   M2 + M1 x M2
+// With EXT PHASE, the previous line's output is also added to the second module's phase (lines B-D).
+// The four lines are summed. Pitch envelope, key follow and the LFOs come in step 4.
 
-import { LEVEL_MAX, levelToGain, noteToHz, OUTPUT_GAIN } from "./convert.ts";
-import { MODULES, type Patch } from "./patch.ts";
+import { EXT_PHASE_DEPTH, LEVEL_MAX, levelToGain, noteToHz, OUTPUT_GAIN, PHASE_MOD_DEPTH } from "./convert.ts";
+import { LINES, MODULES, PHASE, RING, type Patch } from "./patch.ts";
 import { Noise, oscillator } from "./waves.ts";
 
 export const VOICES = 16; // VZ-10M owner's manual p.5: "total 16-note MIDI polyphony"
@@ -24,6 +29,9 @@ const NYQUIST = 0.5;
 const RELEASE_FADE_S = 0.01;
 
 const DONE = -1; // step value once an envelope has finished
+
+// render() works in blocks of at most this many frames, through scratch buffers of this size
+const BLOCK = 128;
 
 export class Engine {
   readonly sampleRate: number;
@@ -43,6 +51,13 @@ export class Engine {
 
   private readonly fadePerSample: number;
   private readonly noise = new Noise();
+
+  // scratch, one block long: each line's two module outputs, phase offsets, and this and the previous line
+  private readonly first = new Float64Array(BLOCK);
+  private readonly second = new Float64Array(BLOCK);
+  private readonly offsets = new Float64Array(BLOCK);
+  private lineOut = new Float64Array(BLOCK);
+  private prevLine = new Float64Array(BLOCK);
 
   constructor(sampleRate: number) {
     this.sampleRate = sampleRate;
@@ -108,39 +123,66 @@ export class Engine {
 
   // Adds `frames` samples into out[offset...]; out is not cleared first.
   render(out: Float32Array, frames: number, offset = 0): void {
-    const sr = this.sampleRate;
+    for (let at = 0; at < frames; at += BLOCK) this.renderBlock(out, Math.min(BLOCK, frames - at), offset + at);
+  }
+
+  private renderBlock(out: Float32Array, frames: number, offset: number): void {
+    const { first, second, offsets } = this;
     for (let v = 0; v < VOICES; v++) {
       if (this.note[v]! < 0) continue;
       const patch = this.voicePatch[v]!;
-      const gate = this.gate[v]!;
       let alive = false;
-      for (let m = 0; m < MODULES; m++) {
-        const i = v * MODULES + m;
-        const mod = patch.modules[m]!;
-        if (!mod.on) continue;
-        const env = mod.env;
-        let phase = this.phase[i]!, level = this.level[i]!, step = this.step[i]!;
-        const inc = this.inc[i]!, wave = mod.wave, noise = this.noise;
+      this.prevLine.fill(0, 0, frames);
+      for (let l = 0; l < LINES; l++) {
+        const mode = patch.lineMode[l]!;
+        // first module: unmodulated
+        offsets.fill(0, 0, frames);
+        alive = this.runModule(v, l * 2, frames, offsets, first) || alive;
+        // second module: M1 in its phase (PHASE), and the previous line (EXT PHASE)
+        const ext = patch.extPhase[l] === 1;
         for (let n = 0; n < frames; n++) {
-          // envelope: move toward this step's level at its rate; advance when it gets there
-          if (step !== DONE) {
-            const target = env.level[step]!, d = env.speed[step]! / sr;
-            if (level < target) level = Math.min(target, level + d);
-            else if (level > target) level = Math.max(target, level - d);
-            if (level === target && !(gate && step === env.sustain)) step = step >= env.end ? DONE : step + 1;
-          } else if (!gate && level > 0) {
-            level = Math.max(0, level - this.fadePerSample);
-          }
-          const s = oscillator(wave, phase, inc, noise);
-          const g = GAIN[(level * GAIN_STEPS) | 0]!;
-          out[offset + n] = out[offset + n]! + s * g * OUTPUT_GAIN;
-          phase += inc;
-          if (phase >= 1) phase -= 1;
+          offsets[n] = (mode === PHASE ? first[n]! * PHASE_MOD_DEPTH : 0) + (ext ? this.prevLine[n]! * EXT_PHASE_DEPTH : 0);
         }
-        this.phase[i] = phase; this.level[i] = level; this.step[i] = step;
-        if (step !== DONE || level > 0 || gate) alive = true;
+        alive = this.runModule(v, l * 2 + 1, frames, offsets, second) || alive;
+        const line = this.lineOut;
+        for (let n = 0; n < frames; n++) {
+          const a = first[n]!, b = second[n]!;
+          line[n] = mode === PHASE ? b : mode === RING ? b + a * b : a + b;
+          out[offset + n] = out[offset + n]! + line[n]! * OUTPUT_GAIN;
+        }
+        // this line becomes the next line's EXT PHASE source
+        this.lineOut = this.prevLine;
+        this.prevLine = line;
       }
       if (!alive) { this.note[v] = -1; this.voicePatch[v] = null; }
     }
+  }
+
+  // One module for one block: envelope, then its waveform read at phase + offsets[n], written into dst.
+  // Returns whether the module is still sounding (or could sound again while the key is held).
+  private runModule(v: number, m: number, frames: number, offsets: Float64Array, dst: Float64Array): boolean {
+    const mod = this.voicePatch[v]!.modules[m]!;
+    if (!mod.on) { dst.fill(0, 0, frames); return false; }
+    const i = v * MODULES + m, env = mod.env, gate = this.gate[v]!, sr = this.sampleRate;
+    let phase = this.phase[i]!, level = this.level[i]!, step = this.step[i]!;
+    const inc = this.inc[i]!, wave = mod.wave, noise = this.noise;
+    for (let n = 0; n < frames; n++) {
+      // envelope: move toward this step's level at its rate; advance when it gets there
+      if (step !== DONE) {
+        const target = env.level[step]!, d = env.speed[step]! / sr;
+        if (level < target) level = Math.min(target, level + d);
+        else if (level > target) level = Math.max(target, level - d);
+        if (level === target && !(gate && step === env.sustain)) step = step >= env.end ? DONE : step + 1;
+      } else if (!gate && level > 0) {
+        level = Math.max(0, level - this.fadePerSample);
+      }
+      let p = phase + offsets[n]!;
+      p -= Math.floor(p);
+      dst[n] = oscillator(wave, p, inc, noise) * GAIN[(level * GAIN_STEPS) | 0]!;
+      phase += inc;
+      if (phase >= 1) phase -= 1;
+    }
+    this.phase[i] = phase; this.level[i] = level; this.step[i] = step;
+    return step !== DONE || level > 0 || gate === 1;
   }
 }

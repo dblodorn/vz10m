@@ -34,6 +34,7 @@ Each step has a RATE and a LEVEL. RATE is how fast the envelope moves toward the
 | SAW1–5 | phase-distorted sine, breakpoints 0.32 / 0.22 / 0.14 / 0.08 / 0.04 of the cycle; the bend is never shorter than 2 samples (anti-aliasing) |
 | NOISE1 / NOISE2 | white noise / half noise, half the note's sine |
 | detune | NOTE in semitones, FINE in 100/64-cent steps |
+| PHASE / EXT PHASE depth | a full-level modulator swings the carrier's phase by ±1 cycle |
 | PITCH FIX | NOTE + FINE read as an absolute MIDI pitch; x16 multiplies the frequency by 16; OCTAVE doesn't apply |
 
 ## Build order

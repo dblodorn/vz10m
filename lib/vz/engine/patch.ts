@@ -6,6 +6,9 @@ import { detuneSemitones, fixedHz, octaveSemitones, rateToSpeed } from "./conver
 
 export const MODULES = 8;
 export const STEPS = 8;
+export const LINES = 4;
+// LINE modes, as stored (LINE_MODES in params.ts)
+export const MIX = 0, PHASE = 1, RING = 2;
 
 export interface EnvelopePatch {
   speed: Float64Array; // per step, level units per second
@@ -24,6 +27,8 @@ export interface ModulePatch {
 
 export interface Patch {
   modules: ModulePatch[];
+  lineMode: Int8Array; // per line A-D: MIX, PHASE or RING
+  extPhase: Uint8Array; // per line: 1 = the previous line's output modulates this line's second module (B-D only)
   octave: number; // semitones, voice-wide, for key-following modules
 }
 
@@ -52,5 +57,10 @@ export function toPatch(data: Uint8Array): Patch {
       env: envelope(data, p),
     });
   }
-  return { modules, octave: octaveSemitones(get(data, "octavePlus") === 1, get(data, "octave")) };
+  const lineMode = new Int8Array(LINES), extPhase = new Uint8Array(LINES);
+  ["A", "B", "C", "D"].forEach((L, l) => {
+    lineMode[l] = get(data, `line${L}.mode`);
+    if (l > 0) extPhase[l] = get(data, `m${l * 2 + 2}.extPhase`);
+  });
+  return { modules, lineMode, extPhase, octave: octaveSemitones(get(data, "octavePlus") === 1, get(data, "octave")) };
 }

@@ -56,6 +56,13 @@ export const PD_MIN_SAMPLES = 2;
 // NOISE2 "includes some fundamental pitch" (riban's notes). ESTIMATE: this much of the note's sine under the noise.
 export const NOISE2_TONE = 0.5;
 
+// ---------- lines ----------
+
+// PHASE: M1's output (after its DCA) is added to M2's phase. ESTIMATE: a full-level M1 swings M2's phase by
+// this many cycles each way. EXT PHASE uses the previous line's output the same way.
+export const PHASE_MOD_DEPTH = 1;
+export const EXT_PHASE_DEPTH = 1;
+
 // Mix headroom: one note with 8 full-level modules in phase peaks at 8 x OUTPUT_GAIN. ESTIMATE: set so that
 // stays under full scale; chords can still clip, and TOTAL LEVEL / ENV DEPTH (step 4) will bring most voices down.
 export const OUTPUT_GAIN = 0.1;

@@ -13,7 +13,7 @@
 
 ## 3. Lines
 
-- [ ] 3.1 MIX, PHASE (M1 modulates M2), RING (M2 + M1×M2), external phase from the previous line.
+- [x] 3.1 MIX, PHASE (M1 modulates M2), RING (M2 + M1×M2), external phase from the previous line. Verify: `test/lines.test.ts` checks each mode exactly against single-module renders, plus EXT PHASE, summing of lines, and that block size doesn't change the output. Worst case (16 notes × 8 modules, all modes, EXT PHASE) runs at about 4.7% of one core in Node.
 
 ## 4. Modulation
 

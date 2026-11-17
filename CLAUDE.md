@@ -55,5 +55,5 @@ Stub `navigator.requestMIDIAccess` with one fake input/output pair (an `addInitS
 ## Roadmap
 
 1. Editor + SysEx (`openspec/changes/vz10m-editor-sysex`). Open: hardware fixtures, verifying the flagged fields, the send request and bulk transfer.
-2. iPD emulator (`openspec/changes/vz10m-emulator`). Step 1 is done: sine modules, DCA envelopes, 16-voice pool, SOUND toggle. Next: waveforms, detune, lines, modulation, then calibration against the hardware.
+2. iPD emulator (`openspec/changes/vz10m-emulator`). Steps 1–3 are done: DCA envelopes, 16-voice pool, SOUND toggle, all waves, detune / fix / octave, and lines (mix, phase, ring, ext phase). Next: pitch envelope, key follow, velocity, LFOs, env depth, total level, then calibration against the hardware.
 3. Save voices, operations and banks to MongoDB through dmbk-graphql-api (`dmbkSoundVz*` types, owner-scoped, raw SysEx stored). Copy windchime's Relay pipeline and add Google sign-in.
