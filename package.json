@@ -5,11 +5,12 @@
   "type": "module",
   "description": "A browser editor and librarian for the Casio VZ-10M, over Web MIDI SysEx.",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "pnpm worklet && next dev",
+    "build": "pnpm worklet && next build",
     "start": "next start",
-    "test": "node --test 'test/**/*.test.ts'",
-    "typecheck": "tsc --noEmit"
+    "test": "node --expose-gc --test 'test/**/*.test.ts'",
+    "typecheck": "tsc --noEmit",
+    "worklet": "esbuild worklet/vz-processor.ts --bundle --format=esm --target=es2022 --outfile=public/vz-worklet.js"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
@@ -29,6 +30,7 @@
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "esbuild": "0.25.12",
     "postcss": "^8.5.32",
     "shadcn": "4.23.0",
     "tailwindcss": "4.3.3",

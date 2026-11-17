@@ -8,3 +8,5 @@ out
 # TypeScript
 next-env.d.ts
 *.tsbuildinfo
+# built by pnpm worklet
+/public/vz-worklet.js

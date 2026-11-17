@@ -14,6 +14,7 @@ export const TYPES: Record<ChangeKind, ChangeType> = {
 };
 
 export const CHANGELOG: Change[] = [
+  { date: "2026-11-17", type: "FEATURE", text: "SOUND: hear the voice in the browser, without the VZ. An early emulator: every module plays a sine through its envelope." },
   { date: "2026-11-17", type: "FEATURE", text: "Library: save voices in the browser, import and export .syx files." },
   { date: "2026-11-17", type: "FEATURE", text: "Voice editor: lines, modules, 8-step envelopes, key follow, vibrato and tremolo." },
   { date: "2026-11-17", type: "FEATURE", text: "MIDI: receive voices from the VZ-10M and send them back as SysEx." },
