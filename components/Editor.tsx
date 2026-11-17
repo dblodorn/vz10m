@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import * as A from "../lib/audio";
 import * as M from "../lib/midi";
+import { router } from "../lib/router";
 import * as V from "../lib/vz/codec";
 import { TYPE } from "../lib/vz/sysex";
 import type { Dir, LivePort, PortInfo, Status } from "../lib/midi";
@@ -17,6 +18,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, Di
 import { SelectItem } from "@/components/ui/select";
 
 const Library = dynamic(() => import("./Library"), { ssr: false });
+const KeyboardFloater = dynamic(() => import("./KeyboardFloater"), { ssr: false });
 
 const CHANNELS = Array.from({ length: 16 }, (_, k) => k + 1);
 const MODULES = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -62,6 +64,7 @@ export default function Editor() {
   const [channel, setChannel] = useState(1);
   const [autoSend, setAutoSend] = useState(false);
   const [msg, setMsg] = useState("");
+  const [keysOpen, setKeysOpen] = useState(false); // the keyboard floater
   const [sound, setSound] = useState(false); // the emulator in the browser
   const soundRef = useRef(false);
   // AUDIO: the emulator's output device, as windchime chooses it
@@ -87,12 +90,15 @@ export default function Editor() {
     M.setWanted("in", store.get("midiIn", ""));
     M.setWanted("out", store.get("midiOut", ""));
     setLibrary(loadLibrary());
+    setKeysOpen(store.get("keys.open", false));
     restored.current = true;
   }, []);
   useEffect(() => { if (restored.current) store.set("voice", toB64(voice)); }, [voice]);
   // every voice change reaches the emulator (a no-op until SOUND has started it)
   useEffect(() => { A.setVoice(voice); }, [voice]);
   useEffect(() => { if (restored.current) store.set("channel", channel); }, [channel]);
+  useEffect(() => { router.setChannel(channel); }, [channel]);
+  useEffect(() => { if (restored.current) store.set("keys.open", keysOpen); }, [keysOpen]);
   useEffect(() => { if (restored.current) store.set("autoSend", autoSend); }, [autoSend]);
   // ---- audio output device ----
   const listDevices = useCallback(async () => {
@@ -180,23 +186,28 @@ export default function Editor() {
     setMsg("");
     try { await M.connect(); } catch (e) { setMsg(e instanceof Error && e.message ? e.message : "MIDI access was refused."); }
   }
-  // SOUND: start audio inside this click, or silence the emulator; MIDI is unaffected either way
-  async function onSound() {
-    if (soundRef.current) {
-      soundRef.current = false; setSound(false);
-      await A.stop();
-      return;
-    }
-    if (!A.supported()) { setMsg("THIS BROWSER CAN'T RUN THE EMULATOR (NO AUDIO WORKLET)."); return; }
+  // Start the emulator inside the current click or key press. Also used by the keyboard floater.
+  const startSound = useCallback(async (): Promise<boolean> => {
+    if (soundRef.current) return true;
+    if (!A.supported()) { setMsg("THIS BROWSER CAN'T RUN THE EMULATOR (NO AUDIO WORKLET)."); return false; }
     try {
       await A.start();
       soundRef.current = true; setSound(true);
+      return true;
     } catch (e) {
       setMsg(`THE EMULATOR WOULD NOT START${e instanceof Error && e.message ? `: ${e.message}` : ""}.`);
+      return false;
     }
+  }, []);
+  // SOUND: start the emulator, or silence it; MIDI is unaffected either way
+  async function onSound() {
+    if (!soundRef.current) { await startSound(); return; }
+    soundRef.current = false; setSound(false);
+    await A.stop();
   }
-  const play = (n: number) => { M.noteOn(channel, n); if (soundRef.current) A.noteOn(n); };
-  const release = (n: number) => { M.noteOff(channel, n); if (soundRef.current) A.noteOff(n); };
+  // computer keys go where PLAY TO (on the keyboard floater) says, like the floater's own keys
+  const play = (n: number) => router.noteOn(n);
+  const release = (n: number) => router.noteOff(n);
 
   async function onSend() {
     const ok = await M.sendSysex(V.toSysex(voice, { channel }));
@@ -252,6 +263,7 @@ export default function Editor() {
         <Button onClick={() => dispatch({ type: "redo" })} disabled={!future.length}>REDO</Button>
         <Button onClick={() => edit(V.initVoice())}>INIT</Button>
         <Button aria-pressed={sound} onClick={onSound}>SOUND</Button>
+        <Button aria-pressed={keysOpen} onClick={() => setKeysOpen(o => !o)}>KEYS</Button>
         <Dialog open={audioOpen} onOpenChange={setAudioOpen}>
           <DialogTrigger asChild>
             <Button className="touch:hidden">AUDIO</Button>
@@ -324,9 +336,9 @@ export default function Editor() {
                   <Check checked={autoSend} onChange={setAutoSend}>SEND ON EDIT</Check>
                   <div className={ROW}>
                     <Button disabled={!midiLive} onClick={() => { M.noteOn(channel, 60); setTimeout(() => M.noteOff(channel, 60), 500); }}>TEST NOTE</Button>
-                    <Button disabled={!midiLive} onClick={() => { M.allNotesOff(channel); A.allOff(); }}>PANIC</Button>
+                    <Button disabled={!midiLive} onClick={() => { router.allOff(); M.allNotesOff(channel); A.allOff(); }}>PANIC</Button>
                   </div>
-                  <p className={NOTE}>On the VZ-10M: set MENU 3-04 EXCLUSIVE to ENA, and MENU 3-03 RECEIVE CH to the CHANNEL above. To get a voice into the editor, pick it on the VZ (A–H, 1–8) in NORMAL or COMBI play; it is sent as you select it. Operations are sent from OP MEM mode. Voices sent from here land in the VZ&apos;s compare/recall area: press WRITE on the VZ to keep one. Play notes with the Z–M keys; with SOUND on they also play the emulator in the browser.</p>
+                  <p className={NOTE}>On the VZ-10M: set MENU 3-04 EXCLUSIVE to ENA, and MENU 3-03 RECEIVE CH to the CHANNEL above. To get a voice into the editor, pick it on the VZ (A–H, 1–8) in NORMAL or COMBI play; it is sent as you select it. Operations are sent from OP MEM mode. Voices sent from here land in the VZ&apos;s compare/recall area: press WRITE on the VZ to keep one. Play notes with KEYS or the Z–M keys; PLAY TO on the keyboard sends them to the VZ, the emulator, or both.</p>
                   {!inputs.length && !outputs.length && <p className={NOTE}>No MIDI ports found. Plug in an interface.</p>}
                 </>
               )}
@@ -435,6 +447,8 @@ export default function Editor() {
         <span className="lead min-w-6" />
         <Link href="/changelog" className="text-foreground">CHANGELOG</Link>
       </footer>
+
+      {keysOpen && <KeyboardFloater onClose={() => setKeysOpen(false)} ensureSound={startSound} />}
 
       {libOpen && (
         <Library

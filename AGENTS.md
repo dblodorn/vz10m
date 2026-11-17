@@ -22,6 +22,9 @@ A browser editor and librarian for the Casio VZ-10M (also reads VZ-1 dumps), ove
   - `engine.ts`: 16 voices × 8 modules; `render()` must never allocate.
 - `worklet/vz-processor.ts`: bundled by esbuild into `public/vz-worklet.js` (git-ignored). `pnpm worklet` builds it; `dev` and `build` run it first.
 - `lib/audio.ts`: starts audio inside a click, forwards the voice and notes to the worklet, and applies the output device (`setSinkId`, typed in `types/audio-sink.d.ts`).
+- `lib/play.ts`: the note router. PLAY TO goes to the emulator, the VZ or both, held keys are counted per source, and it is tested in Node.
+- `lib/router.ts`: the app's instance of it. Every note played from the page goes through it.
+- `components/KeyboardFloater.tsx`: the draggable KEYS panel (2 octaves, OCTAVE, VELOCITY, PLAY TO). It's loaded with `next/dynamic`, and its settings are stored under `vz10m.keys.*`.
 - `scripts/render.ts`: `node scripts/render.ts voice.syx 60 1 out.wav` renders a note offline.
 - `components/Editor.tsx` is the one client root. `components/Library.tsx` loads through `next/dynamic`. `components/params.tsx` holds the row vocabulary (`Param`, `ParamSlider`, `ParamSelect`, `Check`, `FieldRow`).
 
