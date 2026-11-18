@@ -21,5 +21,5 @@
 - [x] 4.2 Browser check with a stubbed API: share, repeat share, YOURS filter, search, refused and accepted rename, delete, device key, banks (new, put, add, move, export, reload), 390 px, no console errors
 - [x] 4.3 A read through the local route to the live API, and cross-site refusal
 - [x] 4.4 Changelog, help, CLAUDE.md
-- [ ] 4.5 A real share, rename and delete on production after deploy
-- [ ] 4.6 Archive this change
+- [x] 4.5 A real share, rename and delete on production after deploy (2026-11-18: a throwaway "ZZ TEST" was shared, renamed, read back after a reload, and deleted)
+- [x] 4.6 Archive this change
