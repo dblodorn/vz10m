@@ -1,0 +1,48 @@
+{
+  "name": "@dblodorn/casio-vz-engine",
+  "version": "0.1.0",
+  "description": "The Casio VZ-1 / VZ-10M emulator as a sound source: load voices, play notes, in an AudioWorklet or offline.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dblodorn/vz10m.git",
+    "directory": "packages/casio-vz-engine"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./worklet.js": "./dist/worklet.js"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./worklet.js": "./dist/worklet.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "build:worklet": "node scripts/build-worklet.ts",
+    "test": "pnpm build:worklet && node --expose-gc --test 'test/**/*.test.ts'",
+    "typecheck": "pnpm build:worklet && tsc --noEmit",
+    "build": "rm -rf dist && pnpm build:worklet && tsc -p tsconfig.build.json && node scripts/rewrite-dts.ts",
+    "smoke": "node scripts/smoke-pack.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "esbuild": "0.25.12",
+    "typescript": "~5.9.3"
+  }
+}

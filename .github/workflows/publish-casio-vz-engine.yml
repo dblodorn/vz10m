@@ -1,0 +1,38 @@
+# Publishes @dblodorn/casio-vz-engine to GitHub Packages when a tag casio-vz-engine@<version> is pushed.
+# Nothing is published unless the tag matches package.json and typecheck, tests, build and the packed smoke
+# test all pass. Other engine packages copy this file with their own name.
+name: publish casio-vz-engine
+
+on:
+  push:
+    tags: ["casio-vz-engine@*"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/casio-vz-engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # version from packageManager in the root package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: "@dblodorn"
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: node scripts/check-tag.ts "$GITHUB_REF_NAME"
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm smoke
+      - run: pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
