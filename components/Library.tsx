@@ -1,25 +1,29 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import * as V from "../lib/vz/codec";
-import { entry, fromB64, type Entry } from "../lib/store";
+import * as Bc from "../lib/banks/client";
+import { download, fileName } from "../lib/files";
+import { entry, fromB64, store, type Entry } from "../lib/store";
 import { NOTE, ROW, SMALL } from "./params";
 import Info from "./Info";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
-// The local library: voices and operations kept in this browser, imported from or exported to .syx files.
-// Loaded with next/dynamic the first time LIBRARY is pressed.
+// The LIBRARY sheet, in three tabs: LOCAL (voices and operations kept in this browser, imported from or exported
+// to .syx files), SHARED (the public list, components/Shared.tsx) and BANKS (64-slot banks on this device,
+// components/Banks.tsx). Loaded with next/dynamic the first time LIBRARY is pressed; SHARED and BANKS load their
+// own code (Relay, SQLite) only when their tab is first shown. ADD TO BANK, in LOCAL and SHARED, fills the first
+// empty slot of the bank last chosen in BANKS.
+
+const Shared = dynamic(() => import("./Shared"), { ssr: false, loading: () => <p className={NOTE}>LOADING…</p> });
+const Banks = dynamic(() => import("./Banks"), { ssr: false, loading: () => <p className={NOTE}>LOADING…</p> });
+
+const TABS = [{ value: "local", label: "LOCAL" }, { value: "shared", label: "SHARED" }, { value: "banks", label: "BANKS" }] as const;
+type Tab = (typeof TABS)[number]["value"];
 
 const date = (iso: string): string => iso.slice(0, 10);
-
-function download(bytes: Uint8Array, filename: string): void {
-  const url = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/octet-stream" }));
-  const a = document.createElement("a");
-  a.href = url; a.download = filename; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-const fileName = (name: string): string => (name.trim() || "VZ").replace(/[^\w -]/g, "").replace(/\s+/g, "-") + ".syx";
 
 interface Props {
   open: boolean;
@@ -37,6 +41,27 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
   const [query, setQuery] = useState("");
   const [confirming, setConfirming] = useState<string | null>(null); // id awaiting a second press of DELETE
   const fileRef = useRef<HTMLInputElement>(null);
+  const [tab, setTab] = useState<Tab>("local");
+  const [activeBank, setActiveBank] = useState<string | null>(null);
+
+  useEffect(() => {
+    const t = store.get<string>("library.tab", "local");
+    setTab(TABS.some(x => x.value === t) ? (t as Tab) : "local");
+    setActiveBank(store.get<string | null>("banks.active", null));
+  }, []);
+  const chooseTab = (t: Tab) => { setTab(t); setMsg(""); store.set("library.tab", t); };
+  const chooseBank = (id: string | null) => { setActiveBank(id); store.set("banks.active", id); };
+
+  async function addToBank(bytes: Uint8Array) {
+    if (!activeBank) return;
+    const name = V.getName(bytes) || "UNTITLED";
+    try {
+      const slot = await Bc.call("add", activeBank, bytes);
+      setMsg(slot < 0 ? "THAT BANK IS FULL. CHOOSE ANOTHER IN BANKS." : `ADDED ${name} TO SLOT ${String(slot + 1).padStart(2, "0")}.`);
+    } catch {
+      setMsg("COULD NOT ADD TO THE BANK. OPEN BANKS AND CHOOSE ONE.");
+    }
+  }
 
   function saveCurrent() {
     const name = V.getName(voice) || "UNTITLED";
@@ -61,14 +86,32 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent aria-describedby="lib-desc" className="w-[min(440px,100vw)]">
+      <SheetContent aria-describedby="lib-desc" className="w-[min(480px,100vw)]">
         <SheetHeader>
           <SheetTitle>LIBRARY</SheetTitle>
           <Info k="library" />
           <span className="lead" />
           <SheetClose asChild><Button>CLOSE</Button></SheetClose>
         </SheetHeader>
-        <SheetDescription id="lib-desc" className={NOTE}>Kept in this browser. Import and export .syx files to move dumps between machines.</SheetDescription>
+        <div role="tablist" aria-label="LIBRARY" className="flex gap-1.5">
+          {TABS.map(t => (
+            <Button key={t.value} role="tab" id={`lib-tab-${t.value}`} aria-controls={`lib-panel-${t.value}`} aria-selected={tab === t.value}
+              className="aria-selected:bg-foreground aria-selected:text-background" onClick={() => chooseTab(t.value)}>{t.label}</Button>
+          ))}
+        </div>
+        <SheetDescription id="lib-desc" className={NOTE}>
+          {tab === "local" ? "Kept in this browser. Import and export .syx files to move dumps between machines."
+            : tab === "shared" ? "Voices anyone can open. What you share here is public, and names are checked before they're listed."
+            : "Banks of 64 voices, kept on this device only. Build them from the voice you're editing, your library and the shared list, then export them as .syx."}
+        </SheetDescription>
+        {tab !== "local" && (
+          <div role="tabpanel" id={`lib-panel-${tab}`} aria-labelledby={`lib-tab-${tab}`} className="grid gap-3">
+            {tab === "shared"
+              ? <>{msg && <p role="status" className={NOTE}>{msg}</p>}<Shared voice={voice} onOpen={onOpen} onAddToBank={activeBank ? addToBank : null} /></>
+              : <Banks voice={voice} active={activeBank} onActive={chooseBank} onOpen={onOpen} canSend={canSend} onSend={onSend} />}
+          </div>
+        )}
+        {tab === "local" && <div role="tabpanel" id="lib-panel-local" aria-labelledby="lib-tab-local" className="grid gap-3.5">
         <div className={ROW + " mt-0"}>
           <Button onClick={saveCurrent}>SAVE CURRENT</Button>
           <Button onClick={() => fileRef.current && fileRef.current.click()}>IMPORT .SYX</Button>
@@ -91,6 +134,7 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {e.kind === "voice" && <Button onClick={() => onOpen(fromB64(e.data))}>OPEN</Button>}
+                {e.kind === "voice" && activeBank && <Button onClick={() => addToBank(fromB64(e.data))}>ADD TO BANK</Button>}
                 <Button disabled={!canSend} onClick={() => onSend([fromB64(e.data)])}>SEND</Button>
                 <Button onClick={() => download(V.toSysex(fromB64(e.data)), fileName(e.name))}>.SYX</Button>
                 <Button
@@ -109,6 +153,7 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
         </ul>
         {!library.length && <p className={NOTE}>Nothing saved yet. SAVE CURRENT keeps the voice you&apos;re editing; IMPORT .SYX reads VZ-1 / VZ-10M dump files.</p>}
         {library.length > 0 && !shown.length && <p className={NOTE}>NO MATCH FOR {q}</p>}
+        </div>}
       </SheetContent>
     </Sheet>
   );

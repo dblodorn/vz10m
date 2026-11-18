@@ -8,5 +8,11 @@ out
 # TypeScript
 next-env.d.ts
 *.tsbuildinfo
-# built by pnpm worklet
+# built by pnpm worklet and pnpm banks
 /public/vz-worklet.js
+/public/vz-banks.js
+/public/sqlite3.wasm
+# generated Relay artifacts (pnpm relay): operations and the
+# persisted-operation allowlist app/api/graphql reads
+__generated__/
+/lib/server/persisted-operations.json

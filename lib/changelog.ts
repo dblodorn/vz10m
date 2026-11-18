@@ -14,6 +14,8 @@ export const TYPES: Record<ChangeKind, ChangeType> = {
 };
 
 export const CHANGELOG: Change[] = [
+  { date: "2026-11-17", type: "FEATURE", text: "LIBRARY → BANKS: build banks of 64 voices on this device, and export them as .syx." },
+  { date: "2026-11-17", type: "FEATURE", text: "LIBRARY → SHARED: share voices in a public list, open anyone's, and rename, update or delete your own. No account needed." },
   { date: "2026-11-17", type: "FEATURE", text: "(?) buttons explain each part of the editor in terms of the VZ's iPD architecture, citing the owner's manual." },
   { date: "2026-11-17", type: "FIX", text: "A line used as EXT PHASE is no longer heard in the emulator, as on the VZ." },
   { date: "2026-11-17", type: "FEATURE", text: "KEYS: a floating two-octave keyboard to play the emulator, the VZ, or both, with OCTAVE and VELOCITY." },

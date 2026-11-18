@@ -190,8 +190,11 @@ export const HELP = {
   library: {
     title: "LIBRARY",
     body: [
-      "Voices and operations kept in this browser. IMPORT and EXPORT .SYX move them between machines and other editors; SEND puts one in the VZ's compare/recall area.",
+      "LOCAL: voices and operations kept in this browser. IMPORT and EXPORT .SYX move them between machines and other editors; SEND puts one in the VZ's compare/recall area.",
+      "SHARED: a public list anyone can open. SHARE CURRENT adds the voice you're editing. Voices marked YOURS were shared from this browser, and only it can rename, update or delete them, using a device key kept here (no account). Copy the key under DEVICE KEY to manage them from another browser.",
+      "BANKS: sets of 64 voices kept on this device. PUT CURRENT fills a slot; ADD TO BANK in LOCAL and SHARED fills the chosen bank's first empty slot. EXPORT .SYX writes the filled slots as one file.",
     ],
+    editor: "The VZ's own bank transfer (MENU 3-02) has no documented byte format, so a bank can't be sent into the VZ's memory from here; send its voices one at a time with SEND.",
   },
 } satisfies Record<string, Help>;
 

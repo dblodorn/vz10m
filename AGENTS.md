@@ -7,6 +7,9 @@ A browser editor and librarian for the Casio VZ-10M (also reads VZ-1 dumps), ove
 - `pnpm dev`, `pnpm build`
 - `pnpm test`: codec tests (`node --test`, which runs the `.ts` files directly). Any `.syx` in `fixtures/` must round-trip byte for byte.
 - `pnpm typecheck`: `tsc --noEmit`. Must be clean; `pnpm build` type-checks too.
+- `pnpm relay`: the Relay compiler; writes `__generated__/` and `lib/server/persisted-operations.json` (both git-ignored). `dev` and `build` run it.
+- `pnpm schema:pull`: refresh `schemas/dmbk-graphql-api.graphql` from the API, then commit it.
+- `pnpm banks`: bundles `worker/banks-worker.ts` into `public/vz-banks.js` and copies `sqlite3.wasm` beside it (both git-ignored). `dev` and `build` run it.
 - Don't run `pnpm build` while `pnpm dev` is running: it overwrites `.next` and the dev server starts returning 500s. Restart dev with `rm -rf .next` if that happens.
 
 ## Layout
@@ -27,6 +30,12 @@ A browser editor and librarian for the Casio VZ-10M (also reads VZ-1 dumps), ove
 - `components/KeyboardFloater.tsx`: the draggable KEYS panel (2 octaves, OCTAVE, VELOCITY, PLAY TO). It's loaded with `next/dynamic`, and its settings are stored under `vz10m.keys.*`.
 - `lib/help.ts` + `components/Info.tsx`: the (?) popovers. Entries are written in our own words from the manual, citing pages (don't paste manual text), with an "in this editor" note where the emulator estimates. Add `info="key"` to a `Param` / `Check` / `FieldRow` to place one.
 - `scripts/render.ts`: `node scripts/render.ts voice.syx 60 1 out.wav` renders a note offline.
+- `components/Library.tsx`: the LIBRARY sheet, tabs LOCAL / SHARED / BANKS (the tab and the chosen bank are stored as `vz10m.library.tab` and `vz10m.banks.active`). SHARED and BANKS are their own `next/dynamic` chunks.
+- `components/Shared.tsx`: the public list through Relay (`dmbkSoundVzVoices` and the save/update/delete mutations of dmbk-graphql-api's `vz-voices`). `app/api/graphql/route.ts` is the only way to the API: same-origin POSTs of persisted ids, forwarded with `DMBK_GRAPHQL_API_KEY` and `x-end-user-ip` (copied from windchime; see its CLAUDE.md). `lib/relay/environment.ts` raises the API's code as `ApiError`.
+- `lib/device.ts`: the device key (32 random bytes, base64url, `vz10m.deviceKey`) that makes shared voices "yours". Made on the first share. The API stores only its hash. Never put it in a URL.
+- `lib/vz/names.ts`: a copy of the API's obscene-name check (`obscenity` + spelled-out letters), so SHARE and RENAME refuse at once. Keep it in step with dmbk-graphql-api's `src/lib/vz/names.ts`.
+- `lib/banks/db.ts`: every bank query, on any SQLite `Database` (schema v1 by `PRAGMA user_version`; add migration steps, never edit v1). `worker/banks-worker.ts` opens it on OPFS's SAH-pool VFS (no COOP/COEP needed; one tab at a time, others fall back to memory with a warning). `lib/banks/client.ts` is the page's promise wrapper.
+- `lib/files.ts`: `download` and `.syx` file names.
 - `components/Editor.tsx` is the one client root. `components/Library.tsx` loads through `next/dynamic`. `components/params.tsx` holds the row vocabulary (`Param`, `ParamSlider`, `ParamSelect`, `Check`, `FieldRow`).
 
 ## Constraints and decisions to keep
@@ -56,8 +65,10 @@ Stub `navigator.requestMIDIAccess` with one fake input/output pair (an `addInitS
 - no console errors or hydration warnings
 - no horizontal scroll at 390 px
 
+For SHARED, answer `**/api/graphql` with `context.route` by operation name (look the posted id up in `lib/server/persisted-operations.json`), so tests never write to the production list. BANKS runs on the real worker and OPFS in headless Chromium.
+
 ## Roadmap
 
 1. Editor + SysEx (`openspec/changes/vz10m-editor-sysex`). Open: hardware fixtures, verifying the flagged fields, the send request and bulk transfer.
 2. iPD emulator (`openspec/changes/vz10m-emulator`). Steps 1–4 are done: every voice parameter is played, with semantics from the VZ-10M owner's manual (MENU 1, pp.35–50), and every curve is in `convert.ts` (sourced or ESTIMATE). Step 5 is done: the real worklet in Chrome runs the worst case at about 5% of one core (no WebAssembly needed), and AUDIO picks the output device. Next: calibration against the hardware (task 6.1). The manual PDF is at https://static.wikitide.net/circuitbendingwiki/a/ad/Casio_VZ10M_Owners_Manual.pdf (a scan; the MIDI implementation chart it refers to isn't included).
-3. Save voices, operations and banks to MongoDB through dmbk-graphql-api (`dmbkSoundVz*` types, owner-scoped, raw SysEx stored). Copy windchime's Relay pipeline and add Google sign-in.
+3. Sharing and banks (`openspec/changes/shared-voices-and-banks`). Voices only go to dmbk-graphql-api (`dmbk-sound.vz_voices`), anonymously, owned by a device key: no accounts, by the user's choice. Banks stay on the device in SQLite. Open: a real share/rename/delete check on production, then archive.
