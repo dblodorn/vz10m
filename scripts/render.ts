@@ -1,5 +1,5 @@
 // Render a VZ voice to a WAV with the emulator, offline. For listening without a browser, and for matching
-// renders against recordings of the hardware (calibration, task 6.1 of openspec/changes/vz10m-emulator).
+// renders against recordings of the hardware (calibration: issue #1).
 //
 //   node scripts/render.ts <voice.syx> <note> <hold seconds> <out.wav> [tail seconds]
 //

@@ -1,7 +1,7 @@
 # banks Specification
 
 ## Purpose
-TBD - created by archiving change shared-voices-and-banks. Update Purpose after archive.
+Defines banks of 64 voice slots kept on this device in SQLite, and how they are built, reordered, imported and exported.
 
 ## Requirements
 

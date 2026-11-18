@@ -1,7 +1,7 @@
 # shared-voices Specification
 
 ## Purpose
-TBD - created by archiving change shared-voices-and-banks. Update Purpose after archive.
+Defines the public list of shared voices on dmbk-graphql-api: browsing, and sharing, renaming, updating and deleting voices owned by a device key, without accounts.
 
 ## Requirements
 

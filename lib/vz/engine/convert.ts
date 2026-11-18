@@ -1,5 +1,5 @@
 // Stored VZ values -> physical quantities. This is the calibration file: every curve here is either sourced
-// (cited) or an ESTIMATE until it is measured against a VZ-10M (task 6.1 of openspec/changes/vz10m-emulator).
+// (cited) or an ESTIMATE until it is measured against a VZ-10M (calibration: issue #1).
 // Nothing else in the engine should hold a number that describes how the VZ sounds.
 //
 // "Manual" means the VZ-10M owner's manual (MENU 1 voice parameters, pp.35-50).

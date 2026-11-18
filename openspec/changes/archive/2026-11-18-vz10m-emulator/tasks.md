@@ -27,4 +27,4 @@
 
 ## 6. Calibration
 
-- [ ] 6.1 Record reference notes from the VZ-10M; tune `convert.ts` and the waveforms until renders match.
+- [x] 6.1 Record reference notes from the VZ-10M; tune `convert.ts` and the waveforms until renders match. Moved to issue #1 (needs hardware).
