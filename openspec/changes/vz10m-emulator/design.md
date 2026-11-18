@@ -34,6 +34,7 @@ Each step has a RATE and a LEVEL. RATE is how fast the envelope moves toward the
 | SAW1–5 | phase-distorted sine, breakpoints 0.32 / 0.22 / 0.14 / 0.08 / 0.04 of the cycle; the bend is never shorter than 2 samples (anti-aliasing) |
 | NOISE1 / NOISE2 | white noise / half noise, half the note's sine |
 | detune | NOTE in semitones, FINE in 100/64-cent steps |
+| EXT PHASE source (sourced) | the line feeding the next line's phase is not heard (manual p.13) |
 | PHASE / EXT PHASE depth | a full-level modulator swings the carrier's phase by ±1 cycle |
 | pitch (sourced) | A4 = 442 Hz (manual pp.41, 110); PITCH FIX starts at F#-1, RANGE x1/16 drops 4 octaves (p.35) |
 | pitch envelope (sourced) | levels −63..+63 (stored with 64 = 0, an estimate); WIDE 100 cents/unit, NARROW 25 (p.37); DEPTH and DCO KF LEVEL 0–63 scale it (pp.37–38) |

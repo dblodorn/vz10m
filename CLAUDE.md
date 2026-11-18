@@ -25,6 +25,7 @@ A browser editor and librarian for the Casio VZ-10M (also reads VZ-1 dumps), ove
 - `lib/play.ts`: the note router. PLAY TO goes to the emulator, the VZ or both, held keys are counted per source, and it is tested in Node.
 - `lib/router.ts`: the app's instance of it. Every note played from the page goes through it.
 - `components/KeyboardFloater.tsx`: the draggable KEYS panel (2 octaves, OCTAVE, VELOCITY, PLAY TO). It's loaded with `next/dynamic`, and its settings are stored under `vz10m.keys.*`.
+- `lib/help.ts` + `components/Info.tsx`: the (?) popovers. Entries are written in our own words from the manual, citing pages (don't paste manual text), with an "in this editor" note where the emulator estimates. Add `info="key"` to a `Param` / `Check` / `FieldRow` to place one.
 - `scripts/render.ts`: `node scripts/render.ts voice.syx 60 1 out.wav` renders a note offline.
 - `components/Editor.tsx` is the one client root. `components/Library.tsx` loads through `next/dynamic`. `components/params.tsx` holds the row vocabulary (`Param`, `ParamSlider`, `ParamSelect`, `Check`, `FieldRow`).
 

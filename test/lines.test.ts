@@ -52,6 +52,14 @@ test("RING: the line is M2 + M1 x M2", () => {
   assert.equal(peak(render(voice([1], { ...PAIR, "lineA.mode": RING }))), 0, "no M2, no line");
 });
 
+test("EXT PHASE: the line it comes from is not heard (manual p.13)", () => {
+  // line A alone, then line A feeding line B (whose modules are off): nothing sounds
+  assert.ok(peak(render(voice([1, 2], PAIR))) > 0.05);
+  assert.equal(peak(render(voice([1, 2], { ...PAIR, "m4.extPhase": 1 }))), 0);
+  // with line B playing, the output stays within one module's level: line A adds nothing of its own
+  assert.ok(peak(render(voice([1, 4], { "m4.note": 12, "m4.extPhase": 1 }))) <= OUTPUT_GAIN + EPS);
+});
+
 test("EXT PHASE: line A bends line B's second module", () => {
   const lineB = { "m4.note": 12 };
   const plain = render(voice([1, 4], lineB));

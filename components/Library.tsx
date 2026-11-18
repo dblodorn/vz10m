@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import * as V from "../lib/vz/codec";
 import { entry, fromB64, type Entry } from "../lib/store";
 import { NOTE, ROW, SMALL } from "./params";
+import Info from "./Info";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
@@ -63,6 +64,7 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
       <SheetContent aria-describedby="lib-desc" className="w-[min(440px,100vw)]">
         <SheetHeader>
           <SheetTitle>LIBRARY</SheetTitle>
+          <Info k="library" />
           <span className="lead" />
           <SheetClose asChild><Button>CLOSE</Button></SheetClose>
         </SheetHeader>

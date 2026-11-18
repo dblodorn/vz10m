@@ -14,6 +14,8 @@ export const TYPES: Record<ChangeKind, ChangeType> = {
 };
 
 export const CHANGELOG: Change[] = [
+  { date: "2026-11-17", type: "FEATURE", text: "(?) buttons explain each part of the editor in terms of the VZ's iPD architecture, citing the owner's manual." },
+  { date: "2026-11-17", type: "FIX", text: "A line used as EXT PHASE is no longer heard in the emulator, as on the VZ." },
   { date: "2026-11-17", type: "FEATURE", text: "KEYS: a floating two-octave keyboard to play the emulator, the VZ, or both, with OCTAVE and VELOCITY." },
   { date: "2026-11-17", type: "FEATURE", text: "AUDIO: choose which audio device the emulator plays through." },
   { date: "2026-11-17", type: "FEATURE", text: "SOUND plays the pitch envelope, vibrato, tremolo, key follow, velocity, ENV DEPTH and TOTAL LEVEL." },

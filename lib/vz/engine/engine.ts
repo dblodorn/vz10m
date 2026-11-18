@@ -8,8 +8,9 @@
 //   MIX    M1 + M2
 //   PHASE  M2 with M1 added to its phase
 //   RING   M2 + M1 x M2
-// With EXT PHASE, the previous line's output is also added to the second module's phase (lines B-D).
-// The four lines are summed.
+// With EXT PHASE, the previous line's output is also added to the second module's phase (lines B-D), and that
+// previous line is then not heard: "LINEs which are used as external phase do not sound" (manual p.13).
+// The lines that sound are summed.
 //
 // Fixed per note at note-on: rates (KF RATE, VELOCITY RATE), module gains (ENV DEPTH, KF LEVEL, VELOCITY LEVEL,
 // TOTAL LEVEL) and the pitch envelope's depth (ENV DEPTH, KF LEVEL and VELOCITY LEVEL of the DCO).
@@ -207,10 +208,12 @@ export class Engine {
         }
         alive = this.runModule(v, l * 2 + 1, frames, offsets, second) || alive;
         const line = this.lineOut;
+        // a line feeding the next line's EXT PHASE is only a modulator
+        const heard = l === LINES - 1 || patch.extPhase[l + 1] !== 1;
         for (let n = 0; n < frames; n++) {
           const a = first[n]!, b = second[n]!;
           line[n] = mode === PHASE ? b : mode === RING ? b + a * b : a + b;
-          out[offset + n] = out[offset + n]! + line[n]! * OUTPUT_GAIN;
+          if (heard) out[offset + n] = out[offset + n]! + line[n]! * OUTPUT_GAIN;
         }
         // this line becomes the next line's EXT PHASE source
         this.lineOut = this.prevLine;

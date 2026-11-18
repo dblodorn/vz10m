@@ -12,6 +12,8 @@ import type { Dir, LivePort, PortInfo, Status } from "../lib/midi";
 import { LINES, LINE_MODES, WAVEFORMS, voiceField } from "../lib/vz/params";
 import { store, toB64, fromB64, loadLibrary, saveLibrary, entry, type Entry } from "../lib/store";
 import EnvelopeEditor from "./EnvelopeEditor";
+import Info from "./Info";
+import type { HelpKey } from "../lib/help";
 import { Check, FieldRow, NOTE, Param, ParamSelect, ROW, SMALL } from "./params";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -21,6 +23,8 @@ const Library = dynamic(() => import("./Library"), { ssr: false });
 const KeyboardFloater = dynamic(() => import("./KeyboardFloater"), { ssr: false });
 
 const CHANNELS = Array.from({ length: 16 }, (_, k) => k + 1);
+// the (?) for each of the module's level rows; VEL SENS shares VEL CURVE's
+const MODULE_INFO = { envDepth: "envDepth", ampSens: "ampSens", velCurve: "velocity", velSens: undefined } as const;
 const MODULES = [1, 2, 3, 4, 5, 6, 7, 8];
 interface Device { id: string; label: string }
 const deviceName = (d: Device): string => (d.label || "UNNAMED DEVICE").toUpperCase();
@@ -262,7 +266,7 @@ export default function Editor() {
         <Button onClick={() => dispatch({ type: "undo" })} disabled={!past.length}>UNDO</Button>
         <Button onClick={() => dispatch({ type: "redo" })} disabled={!future.length}>REDO</Button>
         <Button onClick={() => edit(V.initVoice())}>INIT</Button>
-        <Button aria-pressed={sound} onClick={onSound}>SOUND</Button>
+        <span className="flex items-center gap-1.5"><Button aria-pressed={sound} onClick={onSound}>SOUND</Button><Info k="sound" /></span>
         <Button aria-pressed={keysOpen} onClick={() => setKeysOpen(o => !o)}>KEYS</Button>
         <Dialog open={audioOpen} onOpenChange={setAudioOpen}>
           <DialogTrigger asChild>
@@ -306,6 +310,7 @@ export default function Editor() {
             <DialogHeader>
               <div className="flex items-baseline gap-2">
                 <DialogTitle>MIDI</DialogTitle>
+                <Info k="midi" />
                 <span className="lead" />
                 <DialogClose asChild><Button>CLOSE</Button></DialogClose>
               </div>
@@ -351,13 +356,19 @@ export default function Editor() {
       {msg && <p role="status" className={`${NOTE} max-w-none`}>{msg}</p>}
 
       {/* the four lines, each a pair of modules: the second module always feeds the line */}
+      <div className="-mb-2 flex items-baseline gap-2">
+        <h2 className="m-0 text-[11px] font-normal tracking-[.08em]">LINES</h2>
+        <Info k="ipd" />
+        <span className="lead" />
+        <span className={SMALL}>M1+M2 · M3+M4 · M5+M6 · M7+M8</span>
+      </div>
       <section aria-label="LINES" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {LINES.map((L, l) => {
           const pair = [l * 2 + 1, l * 2 + 2];
           const mode = val(`line${L}.mode`);
           return (
             <div key={L} role="group" aria-label={`LINE ${L}`} className="grid gap-2 border border-foreground p-2.5">
-              <Param id={`line-${L}`} label={`LINE ${L}`} value={LINE_MODES[mode]}>
+              <Param id={`line-${L}`} label={`LINE ${L}`} value={LINE_MODES[mode]} info="line">
                 <ParamSelect id={`line-${L}`} value={String(mode)} display={LINE_MODES[mode]} onChange={v => setValues({ [`line${L}.mode`]: Number(v) })}>
                   {LINE_MODES.map((o, i) => <SelectItem key={o} value={String(i)}>{o}</SelectItem>)}
                 </ParamSelect>
@@ -376,7 +387,7 @@ export default function Editor() {
                 })}
               </div>
               {l > 0 && (
-                <FieldRow id={`ext-${L}`} field={voiceField(`m${pair[1]}.extPhase`)} label="EXT PHASE FROM PREVIOUS LINE" value={val(`m${pair[1]}.extPhase`)} onChange={v => setValues({ [`m${pair[1]}.extPhase`]: v })} />
+                <FieldRow id={`ext-${L}`} field={voiceField(`m${pair[1]}.extPhase`)} label="EXT PHASE FROM PREVIOUS LINE" info="extPhase" value={val(`m${pair[1]}.extPhase`)} onChange={v => setValues({ [`m${pair[1]}.extPhase`]: v })} />
               )}
             </div>
           );
@@ -387,11 +398,12 @@ export default function Editor() {
         <section aria-label={`MODULE ${moduleSel}`} className="grid content-start gap-3.5">
           <div className="flex items-baseline gap-2">
             <h2 className="m-0 text-[11px] font-normal tracking-[.08em]">MODULE M{moduleSel}</h2>
+            <Info k="module" />
             <span className="lead" />
             <Check checked={val(`${m}.off`) === 0} onChange={v => setValues({ [`${m}.off`]: v ? 0 : 1 })}>ON</Check>
           </div>
-          <FieldRow id="wave" field={voiceField(`${m}.wave`)} value={val(`${m}.wave`)} onChange={v => setValues({ [`${m}.wave`]: v })} />
-          <Param id="detune" label="DETUNE" value={`${val(`${m}.detunePlus`) ? "+" : "-"}${val(`${m}.note`)} NOTES  ${val(`${m}.fine`)} FINE`}>
+          <FieldRow id="wave" info="wave" field={voiceField(`${m}.wave`)} value={val(`${m}.wave`)} onChange={v => setValues({ [`${m}.wave`]: v })} />
+          <Param id="detune" label="DETUNE" info="detune" value={`${val(`${m}.detunePlus`) ? "+" : "-"}${val(`${m}.note`)} NOTES  ${val(`${m}.fine`)} FINE`}>
             <div className="mt-1 grid gap-2">
               <FieldRow id="note" field={voiceField(`${m}.note`)} value={val(`${m}.note`)} onChange={v => setValues({ [`${m}.note`]: v })} />
               <FieldRow id="fine" field={voiceField(`${m}.fine`)} value={val(`${m}.fine`)} onChange={v => setValues({ [`${m}.fine`]: v })} />
@@ -402,12 +414,12 @@ export default function Editor() {
               </div>
             </div>
           </Param>
-          {["envDepth", "ampSens", "velCurve", "velSens"].map(k => (
-            <FieldRow key={k} id={k} field={voiceField(`${m}.${k}`)} value={val(`${m}.${k}`)} onChange={v => setValues({ [`${m}.${k}`]: v })} />
+          {(["envDepth", "ampSens", "velCurve", "velSens"] as const).map(k => (
+            <FieldRow key={k} id={k} info={MODULE_INFO[k]} field={voiceField(`${m}.${k}`)} value={val(`${m}.${k}`)} onChange={v => setValues({ [`${m}.${k}`]: v })} />
           ))}
-          <Param id="dca-env" label="DCA ENVELOPE" value={`M${moduleSel}`} />
+          <Param id="dca-env" label="DCA ENVELOPE" value={`M${moduleSel}`} info="dcaEnv" />
           <EnvelopeEditor id="dca" data={voice} prefix={m} onChange={setValues} />
-          <KeyFollow id="dca-kf" title="DCA KEY FOLLOW" prefix={m} second="level" voice={voice} onChange={setValues} />
+          <KeyFollow id="dca-kf" title="DCA KEY FOLLOW" info="dcaKf" prefix={m} second="level" voice={voice} onChange={setValues} />
         </section>
 
         <section aria-label="VOICE" className="grid content-start gap-3.5">
@@ -415,25 +427,25 @@ export default function Editor() {
             <h2 className="m-0 text-[11px] font-normal tracking-[.08em]">VOICE</h2>
             <span className="lead" />
           </div>
-          <FieldRow id="level" field={voiceField("level")} label="TOTAL LEVEL" value={val("level")} onChange={v => setValues({ level: v })} />
-          <Param id="octave" label="OCTAVE" value={`${val("octavePlus") ? "+" : "-"}${val("octave")}`}>
+          <FieldRow id="level" info="totalLevel" field={voiceField("level")} label="TOTAL LEVEL" value={val("level")} onChange={v => setValues({ level: v })} />
+          <Param id="octave" label="OCTAVE" info="octave" value={`${val("octavePlus") ? "+" : "-"}${val("octave")}`}>
             <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5">
               <FieldRow id="octave-plus" field={voiceField("octavePlus")} value={val("octavePlus")} onChange={v => setValues({ octavePlus: v })} />
             </div>
             <FieldRow id="octave-n" field={voiceField("octave")} value={val("octave")} onChange={v => setValues({ octave: v })} />
           </Param>
-          <Param id="dco-env" label="PITCH (DCO) ENVELOPE" value={val("dco.range") ? "WIDE" : "NARROW"} />
+          <Param id="dco-env" label="PITCH (DCO) ENVELOPE" info="pitchEnv" value={val("dco.range") ? "WIDE" : "NARROW"} />
           <EnvelopeEditor id="dco" data={voice} prefix="dco" onChange={setValues} />
           <FieldRow id="dco-depth" field={voiceField("dco.envDepth")} value={val("dco.envDepth")} onChange={v => setValues({ "dco.envDepth": v })} />
           <FieldRow id="dco-range" field={voiceField("dco.range")} value={val("dco.range")} onChange={v => setValues({ "dco.range": v })} />
           {["dco.velCurve", "dco.velSens", "rate.velCurve", "rate.velSens"].map(k => (
-            <FieldRow key={k} id={k.replace(".", "-")} field={voiceField(k)} label={`${k.startsWith("dco") ? "PITCH" : "RATE"} ${voiceField(k).label}`} value={val(k)} onChange={v => setValues({ [k]: v })} />
+            <FieldRow key={k} id={k.replace(".", "-")} info={k === "dco.velCurve" ? "pitchVel" : undefined} field={voiceField(k)} label={`${k.startsWith("dco") ? "PITCH" : "RATE"} ${voiceField(k).label}`} value={val(k)} onChange={v => setValues({ [k]: v })} />
           ))}
-          <KeyFollow id="dco-kf" title="PITCH KEY FOLLOW" prefix="dco" second="level" voice={voice} onChange={setValues} />
-          <KeyFollow id="rate-kf" title="RATE KEY FOLLOW" prefix="rate" second="rate" voice={voice} onChange={setValues} />
-          {[["vib", "VIBRATO"], ["trem", "TREMOLO"]].map(([p, title]) => (
+          <KeyFollow id="dco-kf" title="PITCH KEY FOLLOW" info="pitchKf" prefix="dco" second="level" voice={voice} onChange={setValues} />
+          <KeyFollow id="rate-kf" title="RATE KEY FOLLOW" info="rateKf" prefix="rate" second="rate" voice={voice} onChange={setValues} />
+          {([["vib", "VIBRATO", "vibrato"], ["trem", "TREMOLO", "tremolo"]] as const).map(([p, title, info]) => (
             <div key={p} role="group" aria-label={title} className="grid gap-2.5 border border-foreground p-2.5">
-              <span className="tracking-[.08em]">{title}</span>
+              <span className="flex items-center gap-2"><span className="tracking-[.08em]">{title}</span><Info k={info} /></span>
               {["wave", "depth", "rate", "delay", "multi"].map(k => (
                 <FieldRow key={k} id={`${p}-${k}`} field={voiceField(`${p}.${k}`)} value={val(`${p}.${k}`)} onChange={v => setValues({ [`${p}.${k}`]: v })} />
               ))}
@@ -465,6 +477,7 @@ export default function Editor() {
 interface KeyFollowProps {
   id: string;
   title: string;
+  info: HelpKey;
   prefix: string; // "m1".."m8", "dco" or "rate"
   second: "level" | "rate"; // what each breakpoint sets besides its key
   voice: Uint8Array;
@@ -472,14 +485,14 @@ interface KeyFollowProps {
 }
 
 // six (key, value) breakpoints; keys are MIDI note numbers
-function KeyFollow({ id, title, prefix, second, voice, onChange }: KeyFollowProps) {
+function KeyFollow({ id, title, info, prefix, second, voice, onChange }: KeyFollowProps) {
   const [step, setStep] = useState(1);
   const key = `${prefix}.kf${step}.key`, other = `${prefix}.kf${step}.${second}`;
   const pts = [1, 2, 3, 4, 5, 6].map(s => ({ s, key: V.get(voice, `${prefix}.kf${s}.key`), v: V.get(voice, `${prefix}.kf${s}.${second}`), max: voiceField(`${prefix}.kf${s}.${second}`).max }));
   const W = 320, H = 60;
   return (
     <div role="group" aria-label={title} className="grid gap-2">
-      <Param id={`${id}-t`} label={title} value={`STEP ${step}`} />
+      <Param id={`${id}-t`} label={title} value={`STEP ${step}`} info={info} />
       <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full border border-foreground" aria-hidden="true">
         <polyline fill="none" stroke="currentColor" points={pts.map(p => `${(p.key / 127) * W},${H - 4 - (p.v / p.max) * (H - 8)}`).join(" ")} />
         {pts.map(p => <rect key={p.s} x={(p.key / 127) * W - 3} y={H - 4 - (p.v / p.max) * (H - 8) - 3} width="6" height="6" fill={p.s === step ? "currentColor" : "var(--background)"} stroke="currentColor" />)}

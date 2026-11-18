@@ -5,6 +5,8 @@
 
 import type { ReactNode } from "react";
 import type { Field } from "../lib/vz/params";
+import type { HelpKey } from "../lib/help";
+import Info from "./Info";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -13,11 +15,13 @@ export const NOTE = "m-0 max-w-[60ch] text-[11px]";
 export const ROW = "mt-2 flex flex-wrap items-center gap-2.5";
 export const SMALL = "text-[10px] tracking-[.08em]";
 
-export function Param({ id, label, value, children }: { id: string; label: ReactNode; value: ReactNode; children?: ReactNode }) {
+// `info` adds a (?) after the label that explains the parameter (lib/help.ts)
+export function Param({ id, label, value, info, children }: { id: string; label: ReactNode; value: ReactNode; info?: HelpKey; children?: ReactNode }) {
   return (
     <div>
       <div className="flex items-baseline gap-2 tabular-nums">
         <span id={`${id}-label`} className="tracking-[.08em]">{label}</span>
+        {info && <Info k={info} />}
         <span className="lead" />
         <span className="whitespace-nowrap">{value}</span>
       </div>
@@ -44,32 +48,34 @@ export function ParamSelect({ id, value, display, onChange, disabled, children }
   );
 }
 
-export function Check({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: ReactNode }) {
-  return (
+export function Check({ checked, onChange, info, children }: { checked: boolean; onChange: (v: boolean) => void; info?: HelpKey; children: ReactNode }) {
+  const box = (
     <label className="flex cursor-pointer items-center gap-2 text-[11px] tracking-[.04em]">
       <Checkbox checked={checked} onCheckedChange={v => onChange(v === true)} /> {children}
     </label>
   );
+  // the (?) sits outside the label, so opening it doesn't toggle the box
+  return info ? <span className="flex items-center gap-2">{box}<Info k={info} /></span> : box;
 }
 
-interface FieldRowProps { id: string; field: Field; value: number; onChange: (v: number) => void; label?: string }
+interface FieldRowProps { id: string; field: Field; value: number; onChange: (v: number) => void; label?: string; info?: HelpKey }
 
 // A row for one field of params.ts: a select for fields with options, a checkbox for 1-bit fields, else a slider.
-export function FieldRow({ id, field, value, onChange, label = field.label }: FieldRowProps) {
+export function FieldRow({ id, field, value, onChange, label = field.label, info }: FieldRowProps) {
   const options = field.options;
   if (options) {
     const text = options[value] ?? String(value);
     return (
-      <Param id={id} label={label} value={text}>
+      <Param id={id} label={label} value={text} info={info}>
         <ParamSelect id={id} value={String(value)} display={text} onChange={v => onChange(Number(v))}>
           {options.slice(0, field.max + 1).map((o, i) => <SelectItem key={o} value={String(i)}>{o}</SelectItem>)}
         </ParamSelect>
       </Param>
     );
   }
-  if (field.max === 1) return <Check checked={value === 1} onChange={v => onChange(v ? 1 : 0)}>{label}</Check>;
+  if (field.max === 1) return <Check checked={value === 1} onChange={v => onChange(v ? 1 : 0)} info={info}>{label}</Check>;
   return (
-    <Param id={id} label={label} value={field.display ? `${field.display(value)}  (${value})` : value}>
+    <Param id={id} label={label} value={field.display ? `${field.display(value)}  (${value})` : value} info={info}>
       <ParamSlider id={id} value={value} onChange={onChange} min={field.min} max={field.max} step={1} />
     </Param>
   );

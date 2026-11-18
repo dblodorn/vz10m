@@ -13,6 +13,7 @@ import { TARGETS, type Target } from "../lib/play";
 import { store } from "../lib/store";
 import * as A from "../lib/audio";
 import { Param, ParamSelect, ParamSlider, SMALL } from "./params";
+import Info from "./Info";
 import { Button } from "@/components/ui/button";
 import { SelectItem } from "@/components/ui/select";
 
@@ -169,6 +170,7 @@ export default function KeyboardFloater({ onClose, ensureSound }: Props) {
             <span className="lead" />
             <span className={SMALL}>{noteName(low)}–{noteName(low + KEYS - 1)}</span>
           </span>
+          <Info k="keys" />
           <Button onClick={onClose}>CLOSE</Button>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-[auto_1fr_1fr] sm:items-end">
