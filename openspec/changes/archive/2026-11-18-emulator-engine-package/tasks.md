@@ -76,7 +76,7 @@
   - a Next.js route example.
 
   Add a `CHANGELOG.md` with 0.1.0. Verify: following the README in a scratch Next.js app plays a voice with no copied files or bundler changes.
-- [ ] 5.4 `.github/workflows/publish-casio-vz-engine.yml`:
+- [x] 5.4 `.github/workflows/publish-casio-vz-engine.yml`:
   - triggered by tags `casio-vz-engine@*`, with `packages: write`;
   - checks the tag against the package version;
   - runs typecheck, test, build and the smoke test, then `pnpm publish --filter` with `GITHUB_TOKEN`.
@@ -95,7 +95,7 @@
 
 ## 7. Deploy and release
 
-- [ ] 7.1 Set the Vercel project's root directory to `apps/editor` (ask the user, since it's a project setting), deploy a preview, and check SOUND, KEYS, SHARED (list and open) and BANKS on it. Then promote to production after the user approves. Verify: production serves the editor and SHARED lists voices.
-- [ ] 7.2 Once the user approves, push the tag `casio-vz-engine@0.1.0`. Verify:
+- [x] 7.1 Set the Vercel project's root directory to `apps/editor` (ask the user, since it's a project setting), deploy a preview, and check SOUND, KEYS, SHARED (list and open) and BANKS on it. Then promote to production after the user approves. Verify: production serves the editor and SHARED lists voices.
+- [x] 7.2 Once the user approves, push the tag `casio-vz-engine@0.1.0`. Verify:
   - the workflow publishes `@dblodorn/casio-vz-engine@0.1.0` to GitHub Packages;
   - installing it with a `read:packages` token in a scratch project renders a note.
