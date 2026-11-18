@@ -1,10 +1,12 @@
 schema: spec-driven
 
 context: |
-  Browser editor/librarian for the Casio VZ-10M over Web MIDI SysEx.
+  Browser editor/librarian for the Casio VZ-10M over Web MIDI SysEx, and its emulator as a package.
+  pnpm workspace: apps/editor (the Next.js app), packages/casio-vz-engine (@dblodorn/casio-vz-engine, playback only,
+  published to GitHub Packages; engine packages follow openspec/specs/engine-packages).
   Stack: Next.js 15 App Router, React 19, TypeScript (strict, erasable syntax only), Tailwind v4, shadcn (radix-ui) restyled
   to windchime's 1-bit theme, zod, node:test. Sibling app: ~/Desktop/sound/windchime (UI conventions source).
-  Voices are their decoded bytes (336 per voice, 100 per operation); lib/vz/params.ts maps fields to byte+mask.
+  Voices are their decoded bytes (336 per voice, 100 per operation); packages/casio-vz-engine/src/params.ts maps fields to byte+mask.
   SysEx format facts must cite a source; unverified ones are flagged, never guessed.
 
 # Project context (optional)
