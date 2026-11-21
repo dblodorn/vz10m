@@ -52,7 +52,7 @@ Playback only. It can read a voice (`get`, `getName`, `toParams`, the field tabl
 
 ## Engine package convention (`[manufacturer]-[model]-engine`)
 
-Every emulator gets the same shape, so a future DX7 repo copies this one (`openspec/specs/engine-packages` once the change is archived; until then its delta in `openspec/changes/emulator-engine-package/specs/`):
+Every emulator gets the same shape, so a future DX7 repo copies this one (`openspec/specs/engine-packages`):
 
 - **Name and place:**
   - the package is `@dblodorn/<manufacturer>-<model>-engine` (scope = the GitHub owner, as GitHub Packages requires), at `packages/<manufacturer>-<model>-engine`;
@@ -138,4 +138,4 @@ For SHARED, answer `**/api/graphql` with `context.route` by operation name (look
 1. Editor + SysEx: done and archived (`openspec/specs/vz-sysex`, `voice-editor`, `midi-io`, `library`). The hardware checks (fixtures, the flagged fields, sending, bulk transfer) are in issue #1.
 2. iPD emulator: archived (`openspec/specs/vz-engine`, `audio-output`; the estimates table is in the archived change's `design.md`). Steps 1–4 are done: every voice parameter is played, with semantics from the VZ-10M owner's manual (MENU 1, pp.35–50), and every curve is in `convert.ts` (sourced or ESTIMATE). Step 5 is done: the real worklet in Chrome runs the worst case at about 5% of one core (no WebAssembly needed), and AUDIO picks the output device. Calibration against the hardware is issue #1, for later. The manual PDF is at https://static.wikitide.net/circuitbendingwiki/a/ad/Casio_VZ10M_Owners_Manual.pdf (a scan; the MIDI implementation chart it refers to isn't included).
 3. Sharing and banks: done, checked on production 2026-11-18, archived (`openspec/specs/shared-voices`, `openspec/specs/banks`). Voices only go to dmbk-graphql-api (`dmbk-sound.vz_voices`), anonymously, owned by a device key: no accounts, by the user's choice. Banks stay on the device in SQLite.
-4. Engine package: `openspec/changes/emulator-engine-package` (`casio-vz-engine-sdk`, `engine-packages`). The monorepo, package, synth API, patch sources, build, smoke test and publish workflow are in place. Left to do: the first CI run, the Vercel root directory (`apps/editor`), and the `casio-vz-engine@0.1.0` tag. Windchime adopts the package in its own change.
+4. Engine package: done and archived (`openspec/specs/casio-vz-engine-sdk`, `engine-packages`). `@dblodorn/casio-vz-engine@0.1.0` (MIT) is on GitHub Packages, published by the workflow on 2026-11-18; production builds from `apps/editor` (Vercel root directory). Windchime adopts the package in its own change.

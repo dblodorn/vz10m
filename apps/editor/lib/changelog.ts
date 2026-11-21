@@ -14,6 +14,8 @@ export const TYPES: Record<ChangeKind, ChangeType> = {
 };
 
 export const CHANGELOG: Change[] = [
+  { date: "2026-11-21", type: "FEATURE", text: "LIBRARY → RESOURCES: links to the manual, patch archives and VZ tools on the web." },
+  { date: "2026-11-21", type: "ENHANCEMENT", text: "SHARED has the factory voices of Casio's RC-100 to RC-140 ROM cards." },
   { date: "2026-11-18", type: "ENHANCEMENT", text: "SOUND plays through the VZ engine package (@dblodorn/casio-vz-engine), the same emulator other apps can now use." },
   { date: "2026-11-17", type: "FEATURE", text: "LIBRARY → BANKS: build banks of 64 voices on this device, and export them as .syx." },
   { date: "2026-11-17", type: "FEATURE", text: "LIBRARY → SHARED: share voices in a public list, open anyone's, and rename, update or delete your own. No account needed." },
