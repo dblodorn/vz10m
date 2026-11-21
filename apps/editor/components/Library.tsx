@@ -5,22 +5,23 @@ import dynamic from "next/dynamic";
 import * as V from "../lib/vz/codec";
 import * as Bc from "../lib/banks/client";
 import { download, fileName } from "../lib/files";
+import { RESOURCES } from "../lib/resources";
 import { entry, fromB64, store, type Entry } from "../lib/store";
 import { NOTE, ROW, SMALL } from "./params";
 import Info from "./Info";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
-// The LIBRARY sheet, in three tabs: LOCAL (voices and operations kept in this browser, imported from or exported
-// to .syx files), SHARED (the public list, components/Shared.tsx) and BANKS (64-slot banks on this device,
-// components/Banks.tsx). Loaded with next/dynamic the first time LIBRARY is pressed; SHARED and BANKS load their
+// The LIBRARY sheet, in four tabs: LOCAL (voices and operations kept in this browser, imported from or exported
+// to .syx files), SHARED (the public list, components/Shared.tsx), BANKS (64-slot banks on this device,
+// components/Banks.tsx) and RESOURCES (outside links, lib/resources.ts). Loaded with next/dynamic the first time LIBRARY is pressed; SHARED and BANKS load their
 // own code (Relay, SQLite) only when their tab is first shown. ADD TO BANK, in LOCAL and SHARED, fills the first
 // empty slot of the bank last chosen in BANKS.
 
 const Shared = dynamic(() => import("./Shared"), { ssr: false, loading: () => <p className={NOTE}>LOADING…</p> });
 const Banks = dynamic(() => import("./Banks"), { ssr: false, loading: () => <p className={NOTE}>LOADING…</p> });
 
-const TABS = [{ value: "local", label: "LOCAL" }, { value: "shared", label: "SHARED" }, { value: "banks", label: "BANKS" }] as const;
+const TABS = [{ value: "local", label: "LOCAL" }, { value: "shared", label: "SHARED" }, { value: "banks", label: "BANKS" }, { value: "resources", label: "RESOURCES" }] as const;
 type Tab = (typeof TABS)[number]["value"];
 
 const date = (iso: string): string => iso.slice(0, 10);
@@ -93,7 +94,7 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
           <span className="lead" />
           <SheetClose asChild><Button>CLOSE</Button></SheetClose>
         </SheetHeader>
-        <div role="tablist" aria-label="LIBRARY" className="flex gap-1.5">
+        <div role="tablist" aria-label="LIBRARY" className="flex flex-wrap gap-1.5">
           {TABS.map(t => (
             <Button key={t.value} role="tab" id={`lib-tab-${t.value}`} aria-controls={`lib-panel-${t.value}`} aria-selected={tab === t.value}
               className="aria-selected:bg-foreground aria-selected:text-background" onClick={() => chooseTab(t.value)}>{t.label}</Button>
@@ -102,9 +103,23 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
         <SheetDescription id="lib-desc" className={NOTE}>
           {tab === "local" ? "Kept in this browser. Import and export .syx files to move dumps between machines."
             : tab === "shared" ? "Voices anyone can open. What you share here is public, and names are checked before they're listed."
-            : "Banks of 64 voices, kept on this device only. Build them from the voice you're editing, your library and the shared list, then export them as .syx."}
+            : tab === "banks" ? "Banks of 64 voices, kept on this device only. Build them from the voice you're editing, your library and the shared list, then export them as .syx."
+            : "Manuals, patch archives and tools elsewhere on the web. They open in a new tab. Casio's RC-100 to RC-140 ROM card voices are already in SHARED."}
         </SheetDescription>
-        {tab !== "local" && (
+        {tab === "resources" && (
+          <ul role="tabpanel" id="lib-panel-resources" aria-labelledby="lib-tab-resources" className="m-0 grid list-none p-0">
+            {RESOURCES.map(r => (
+              <li key={r.url} className="grid gap-1 border-t border-dashed border-foreground py-2">
+                <a href={r.url} target="_blank" rel="noopener noreferrer"
+                  className="w-fit tracking-[.06em] text-foreground underline underline-offset-3 outline-none focus-visible:outline-1 focus-visible:outline-offset-3 focus-visible:outline-dashed">
+                  {r.name}
+                </a>
+                <p className={NOTE}>{r.text}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+        {(tab === "shared" || tab === "banks") && (
           <div role="tabpanel" id={`lib-panel-${tab}`} aria-labelledby={`lib-tab-${tab}`} className="grid gap-3">
             {tab === "shared"
               ? <>{msg && <p role="status" className={NOTE}>{msg}</p>}<Shared voice={voice} onOpen={onOpen} onAddToBank={activeBank ? addToBank : null} /></>
