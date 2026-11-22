@@ -14,6 +14,7 @@ export const TYPES: Record<ChangeKind, ChangeType> = {
 };
 
 export const CHANGELOG: Change[] = [
+  { date: "2026-11-22", type: "ENHANCEMENT", text: "The footer credits the typeface: Knif Mono by A is for fonts." },
   { date: "2026-11-21", type: "FIX", text: "SOUND plays on iPhone with the ring/silent switch set to silent." },
   { date: "2026-11-21", type: "FEATURE", text: "LIBRARY → RESOURCES: links to the manual, patch archives and VZ tools on the web." },
   { date: "2026-11-21", type: "ENHANCEMENT", text: "SHARED has the factory voices of Casio's RC-100 to RC-140 ROM cards." },
