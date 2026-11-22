@@ -457,8 +457,6 @@ export default function Editor() {
       <footer className={`flex flex-wrap items-center gap-3 ${SMALL}`}>
         <span>VALUES ARE RAW STORED VALUES; THE VZ PANEL SHOWS SOME ON A 0–99 SCALE.</span>
         <span className="lead min-w-6" />
-        {/* the typeface's credit: Knif Mono, licensed from A is for fonts */}
-        <a href="https://aisforfonts.com/knif/" target="_blank" rel="noreferrer" className="text-foreground">TYPE: KNIF MONO BY A IS FOR FONTS</a>
         <Link href="/changelog" className="text-foreground">CHANGELOG</Link>
       </footer>
 

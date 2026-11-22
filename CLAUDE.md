@@ -85,7 +85,7 @@ Every emulator gets the same shape, so a future DX7 repo copies this one (`opens
 - `components/KeyboardFloater.tsx`: the draggable KEYS panel (2 octaves, OCTAVE, VELOCITY, PLAY TO). It's loaded with `next/dynamic`, and its settings are stored under `vz10m.keys.*`.
 - `lib/help.ts` + `components/Info.tsx`: the (?) popovers. Entries are written in our own words from the manual, citing pages (don't paste manual text), with an "in this editor" note where the emulator estimates. Add `info="key"` to a `Param` / `Check` / `FieldRow` to place one.
 - `scripts/render.ts`: `node apps/editor/scripts/render.ts voice.syx 60 1 out.wav` renders a note offline (through `createOfflineSynth`).
-- `components/Library.tsx`: the LIBRARY sheet, tabs LOCAL / SHARED / BANKS (the tab and the chosen bank are stored as `vz10m.library.tab` and `vz10m.banks.active`). SHARED and BANKS are their own `next/dynamic` chunks.
+- `components/Library.tsx`: the LIBRARY sheet, tabs LOCAL / SHARED / BANKS / COLOPHON (the tab and the chosen bank are stored as `vz10m.library.tab` and `vz10m.banks.active`). SHARED and BANKS are their own `next/dynamic` chunks.
 - `components/Shared.tsx`: the public list through Relay (`dmbkSoundVzVoices` and the save/update/delete mutations of dmbk-graphql-api's `vz-voices`).
   - `app/api/graphql/route.ts` is the editor's only way to the API: same-origin POSTs of persisted ids, forwarded with `DMBK_GRAPHQL_API_KEY` and `x-end-user-ip` (copied from windchime; see its CLAUDE.md).
   - `lib/relay/environment.ts` raises the API's code as `ApiError`.
@@ -112,7 +112,7 @@ Every emulator gets the same shape, so a future DX7 repo copies this one (`opens
 - **Raw values in the UI** until the panel-scale conversions are confirmed. Only give a field `display` where a source states the conversion.
 - **SSR:** neither `lib/*` nor the package touches `window`, `document`, `navigator` or `localStorage` at module top level. Capability checks and storage reads happen in a mount effect. Listeners return unsubscribe functions (strict mode).
 - **MIDI access only on a click** (CONNECT MIDI), with `sysex: true`. Chrome/Edge only in practice; Safari has no Web MIDI.
-- **Typeface credit:** the footer credits Knif Mono (TYPE: KNIF MONO BY A IS FOR FONTS, https://aisforfonts.com/knif/). It's licensed under A is for fonts' webfont EULA; keep the credit.
+- **Typeface credit:** LIBRARY → COLOPHON credits Knif Mono first (TYPE: KNIF MONO BY A IS FOR FONTS, https://aisforfonts.com/knif/). It's licensed under A is for fonts' webfont EULA; keep the credit.
 - **UI = windchime's 1-bit language:**
   - every token `#000`/`#fff`, `--radius: 0`, no shadows, no dark mode
   - Knif Mono as `--font-ui`; uppercase labels; text instead of icons
