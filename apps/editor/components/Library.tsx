@@ -14,14 +14,14 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTi
 
 // The LIBRARY sheet, in four tabs: LOCAL (voices and operations kept in this browser, imported from or exported
 // to .syx files), SHARED (the public list, components/Shared.tsx), BANKS (64-slot banks on this device,
-// components/Banks.tsx) and RESOURCES (outside links, lib/resources.ts). Loaded with next/dynamic the first time LIBRARY is pressed; SHARED and BANKS load their
+// components/Banks.tsx) and COLOPHON (the typeface's credit, then outside links from lib/resources.ts). Loaded with next/dynamic the first time LIBRARY is pressed; SHARED and BANKS load their
 // own code (Relay, SQLite) only when their tab is first shown. ADD TO BANK, in LOCAL and SHARED, fills the first
 // empty slot of the bank last chosen in BANKS.
 
 const Shared = dynamic(() => import("./Shared"), { ssr: false, loading: () => <p className={NOTE}>LOADING…</p> });
 const Banks = dynamic(() => import("./Banks"), { ssr: false, loading: () => <p className={NOTE}>LOADING…</p> });
 
-const TABS = [{ value: "local", label: "LOCAL" }, { value: "shared", label: "SHARED" }, { value: "banks", label: "BANKS" }, { value: "resources", label: "RESOURCES" }] as const;
+const TABS = [{ value: "local", label: "LOCAL" }, { value: "shared", label: "SHARED" }, { value: "banks", label: "BANKS" }, { value: "colophon", label: "COLOPHON" }] as const;
 type Tab = (typeof TABS)[number]["value"];
 
 const date = (iso: string): string => iso.slice(0, 10);
@@ -46,7 +46,8 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
   const [activeBank, setActiveBank] = useState<string | null>(null);
 
   useEffect(() => {
-    const t = store.get<string>("library.tab", "local");
+    const saved = store.get<string>("library.tab", "local");
+    const t = saved === "resources" ? "colophon" : saved; // the tab's old name
     setTab(TABS.some(x => x.value === t) ? (t as Tab) : "local");
     setActiveBank(store.get<string | null>("banks.active", null));
   }, []);
@@ -104,10 +105,17 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
           {tab === "local" ? "Kept in this browser. Import and export .syx files to move dumps between machines."
             : tab === "shared" ? "Voices anyone can open. What you share here is public, and names are checked before they're listed."
             : tab === "banks" ? "Banks of 64 voices, kept on this device only. Build them from the voice you're editing, your library and the shared list, then export them as .syx."
-            : "Manuals, patch archives and tools elsewhere on the web. They open in a new tab. Casio's RC-100 to RC-140 ROM card voices are already in SHARED."}
+            : "The typeface, then manuals, patch archives and tools elsewhere on the web. They open in a new tab. Casio's RC-100 to RC-140 ROM card voices are already in SHARED."}
         </SheetDescription>
-        {tab === "resources" && (
-          <ul role="tabpanel" id="lib-panel-resources" aria-labelledby="lib-tab-resources" className="m-0 grid list-none p-0">
+        {tab === "colophon" && (
+          <ul role="tabpanel" id="lib-panel-colophon" aria-labelledby="lib-tab-colophon" className="m-0 grid list-none p-0">
+            <li className="grid gap-1 border-t border-dashed border-foreground py-2">
+              <a href="https://aisforfonts.com/knif/" target="_blank" rel="noopener noreferrer"
+                className="w-fit tracking-[.06em] text-foreground underline underline-offset-3 outline-none focus-visible:outline-1 focus-visible:outline-offset-3 focus-visible:outline-dashed">
+                TYPE: KNIF MONO BY A IS FOR FONTS
+              </a>
+              <p className={NOTE}>The editor is set in Knif Mono, licensed from the foundry A is for fonts.</p>
+            </li>
             {RESOURCES.map(r => (
               <li key={r.url} className="grid gap-1 border-t border-dashed border-foreground py-2">
                 <a href={r.url} target="_blank" rel="noopener noreferrer"
