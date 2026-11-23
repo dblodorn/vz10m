@@ -105,7 +105,7 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
           {tab === "local" ? "Kept in this browser. Import and export .syx files to move dumps between machines."
             : tab === "shared" ? "Voices anyone can open. What you share here is public, and names are checked before they're listed."
             : tab === "banks" ? "Banks of 64 voices, kept on this device only. Build them from the voice you're editing, your library and the shared list, then export them as .syx."
-            : "The typeface, then manuals, patch archives and tools elsewhere on the web. They open in a new tab. Casio's RC-100 to RC-140 ROM card voices are already in SHARED."}
+            : "The typeface and the design system, then manuals, patch archives and tools elsewhere on the web. They open in a new tab. Casio's RC-100 to RC-140 ROM card voices are already in SHARED."}
         </SheetDescription>
         {tab === "colophon" && (
           <ul role="tabpanel" id="lib-panel-colophon" aria-labelledby="lib-tab-colophon" className="m-0 grid list-none p-0">
@@ -115,6 +115,13 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
                 TYPE: KNIF MONO BY A IS FOR FONTS
               </a>
               <p className={NOTE}>The editor is set in Knif Mono, licensed from the foundry A is for fonts.</p>
+            </li>
+            <li className="grid gap-1 border-t border-dashed border-foreground py-2">
+              <a href="https://soundsystem.dmbk.io/" target="_blank" rel="noopener noreferrer"
+                className="w-fit tracking-[.06em] text-foreground underline underline-offset-3 outline-none focus-visible:outline-1 focus-visible:outline-offset-3 focus-visible:outline-dashed">
+                SOUND DESIGN SYSTEM
+              </a>
+              <p className={NOTE}>The controls, type and colors this editor shares with Chime and the DX7 editor.</p>
             </li>
             {RESOURCES.map(r => (
               <li key={r.url} className="grid gap-1 border-t border-dashed border-foreground py-2">

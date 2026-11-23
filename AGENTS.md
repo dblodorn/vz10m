@@ -112,7 +112,7 @@ Every emulator gets the same shape, so a future DX7 repo copies this one (`opens
 - **Raw values in the UI** until the panel-scale conversions are confirmed. Only give a field `display` where a source states the conversion.
 - **SSR:** neither `lib/*` nor the package touches `window`, `document`, `navigator` or `localStorage` at module top level. Capability checks and storage reads happen in a mount effect. Listeners return unsubscribe functions (strict mode).
 - **MIDI access only on a click** (CONNECT MIDI), with `sysex: true`. Chrome/Edge only in practice; Safari has no Web MIDI.
-- **Typeface credit:** LIBRARY → COLOPHON credits Knif Mono first (TYPE: KNIF MONO BY A IS FOR FONTS, https://aisforfonts.com/knif/). It's licensed under A is for fonts' webfont EULA; keep the credit.
+- **Typeface credit:** LIBRARY → COLOPHON credits Knif Mono first (TYPE: KNIF MONO BY A IS FOR FONTS, https://aisforfonts.com/knif/), then links SOUND DESIGN SYSTEM (https://soundsystem.dmbk.io/). It's licensed under A is for fonts' webfont EULA; keep the credit.
 - **UI = windchime's 1-bit language:**
   - every token `#000`/`#fff`, `--radius: 0`, no shadows, no dark mode
   - Knif Mono as `--font-ui`; uppercase labels; text instead of icons
