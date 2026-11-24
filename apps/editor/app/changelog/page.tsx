@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@dblodorn/sound-ui/server";
 import { CHANGELOG, TYPES } from "@/lib/changelog";
 
 export const metadata: Metadata = { title: "Changelog · VZ-10M" };
@@ -21,7 +21,7 @@ export default function ChangelogPage() {
           <li key={i} className="grid gap-0.5 border-t border-dashed border-foreground py-2">
             <span className={`flex items-center gap-3 ${SMALL}`}>
               <time dateTime={e.date}>{e.date}</time>
-              <Badge color={TYPES[e.type].hex}>{e.type}</Badge>
+              <Badge tone={e.type.toLowerCase() as "feature" | "enhancement" | "fix"}>{e.type}</Badge>
             </span>
             <span className="text-[13px] [overflow-wrap:anywhere]">{e.text}</span>
           </li>
