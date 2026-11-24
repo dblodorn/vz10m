@@ -21,6 +21,7 @@ Run from the root. They fan out to the workspace (`pnpm -F <name> <script>` for 
 - `pnpm typecheck`: `tsc --noEmit` in each package. Must be clean; `pnpm build` type-checks too.
 - `pnpm relay`: the Relay compiler; writes `__generated__/` and `apps/editor/lib/server/persisted-operations.json` (both git-ignored). `dev` and `build` run it.
 - SHARED needs `DMBK_GRAPHQL_API_KEY` in `apps/editor/.env.local` (the project is linked to Vercel). Without it the route throws in production and forwards without `x-api-key` in dev; nothing else needs it.
+- Installing needs a token: the sound design system's packages (`@dblodorn/sound-ui`, `@dblodorn/sound-tokens`) come from GitHub Packages. `.npmrc` holds only `@dblodorn:registry=https://npm.pkg.github.com`; the token comes from `~/.npmrc` locally and from the `NPM_RC` env var (Production and Preview, Sensitive) on Vercel, as in windchime and dx7.
 - `pnpm schema:pull`: refresh `apps/editor/schemas/dmbk-graphql-api.graphql` from the API, then commit it.
 - `pnpm banks`: bundles `worker/banks-worker.ts` into `apps/editor/public/vz-banks.js` and copies `sqlite3.wasm` beside it (both git-ignored). `dev` and `build` run it.
 - Engine package (`pnpm -F @dblodorn/casio-vz-engine …`):
@@ -82,7 +83,9 @@ Every emulator gets the same shape, so a future DX7 repo copies this one (`opens
 - `worker/banks-messages.ts` types the page ↔ banks worker messages (one answer per request id). Change the message type there, then both sides.
 - `lib/play.ts`: the note router. PLAY TO goes to the emulator, the VZ or both, held keys are counted per source, and it is tested in Node.
 - `lib/router.ts`: the app's instance of it. Every note played from the page goes through it.
-- `components/KeyboardFloater.tsx`: the draggable KEYS panel (2 octaves, OCTAVE, VELOCITY, PLAY TO). It's loaded with `next/dynamic`, and its settings are stored under `vz10m.keys.*`.
+- The interface comes from `@dblodorn/sound-ui` and `@dblodorn/sound-tokens` (the sound design system, https://soundsystem.dmbk.io; pinned exactly). `app/globals.css` imports `@dblodorn/sound-ui/styles.css` and `@dblodorn/sound-tokens/fonts.css` (Knif Mono comes from there, not from this repo) and keeps only the page padding and `.lead`. `params.tsx` and `Info.tsx` wrap the package's rows and (?) so `info` takes a `lib/help.ts` key (and `FieldRow` shows the engine's numeric `display` as text).
+- Adapters from voice bytes to the package's drawings: `components/EnvelopeEditor.tsx` (EnvelopeEditor, "step" layout: eight steps, sustain, velocity rate and END STEP as its extra rows; drawn 120 high through `--sound-envelope-*` overrides) and `KeyFollow` in `Editor.tsx` (BreakpointCurve: six key/value points, note names, the DCA level's 99–0 reading).
+- `components/KeyboardFloater.tsx`: the draggable KEYS panel (the package's KeyboardFloater with OCTAVE, VELOCITY, PLAY TO). It's loaded with `next/dynamic`, and its settings are stored under `vz10m.keys.*`.
 - `lib/help.ts` + `components/Info.tsx`: the (?) popovers. Entries are written in our own words from the manual, citing pages (don't paste manual text), with an "in this editor" note where the emulator estimates. Add `info="key"` to a `Param` / `Check` / `FieldRow` to place one.
 - `scripts/render.ts`: `node apps/editor/scripts/render.ts voice.syx 60 1 out.wav` renders a note offline (through `createOfflineSynth`).
 - `components/Library.tsx`: the LIBRARY sheet, tabs LOCAL / SHARED / BANKS / COLOPHON (the tab and the chosen bank are stored as `vz10m.library.tab` and `vz10m.banks.active`). SHARED and BANKS are their own `next/dynamic` chunks.
@@ -112,13 +115,13 @@ Every emulator gets the same shape, so a future DX7 repo copies this one (`opens
 - **Raw values in the UI** until the panel-scale conversions are confirmed. Only give a field `display` where a source states the conversion.
 - **SSR:** neither `lib/*` nor the package touches `window`, `document`, `navigator` or `localStorage` at module top level. Capability checks and storage reads happen in a mount effect. Listeners return unsubscribe functions (strict mode).
 - **MIDI access only on a click** (CONNECT MIDI), with `sysex: true`. Chrome/Edge only in practice; Safari has no Web MIDI.
-- **Typeface credit:** LIBRARY → COLOPHON credits Knif Mono first (TYPE: KNIF MONO BY A IS FOR FONTS, https://aisforfonts.com/knif/), then links SOUND DESIGN SYSTEM (https://soundsystem.dmbk.io/). It's licensed under A is for fonts' webfont EULA; keep the credit.
-- **UI = windchime's 1-bit language:**
-  - every token `#000`/`#fff`, `--radius: 0`, no shadows, no dark mode
-  - Knif Mono as `--font-ui`; uppercase labels; text instead of icons
+- **Typeface credit:** LIBRARY → COLOPHON credits Knif Mono first with the package's `TypeCredit` (TYPE: KNIF MONO BY A IS FOR FONTS, https://aisforfonts.com/knif/), then links SOUND DESIGN SYSTEM (https://soundsystem.dmbk.io/). It's licensed under A is for fonts' webfont EULA; keep the credit.
+- **UI = the sound design system's 1-bit language** (windchime's, now in `@dblodorn/sound-ui`):
+  - every token `#000`/`#fff`, no radius, no shadows, no dark mode
+  - Knif Mono; uppercase labels; text instead of icons
   - `LABEL ..... value` rows with the control beneath
   - dashed 1px focus outline; inverted hover/pressed
-  - shadcn: `pnpm dlx shadcn@4.23.0 add <name>` (from `apps/editor`), then strip `rounded-*`, `shadow-*`, `ring-*`, `dark:*`
+  - a control the package lacks goes into the package (sound-design-system), not into this repo
 - **Changelogs:** every shipped change to the editor adds a line at the top of `apps/editor/lib/changelog.ts`. Every package release adds an entry to the package's `CHANGELOG.md`.
 - **OpenSpec:** features go through `openspec/changes/<name>/` (proposal, design, tasks, spec deltas) and are archived when done.
 

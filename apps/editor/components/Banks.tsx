@@ -11,8 +11,7 @@ import { SLOTS, NAME_MAX, type Bank, type BankSummary } from "../lib/banks/db";
 import * as V from "../lib/vz/codec";
 import { download, fileName } from "../lib/files";
 import { NOTE, Param, ParamSelect, ROW, SMALL } from "./params";
-import { Button } from "@/components/ui/button";
-import { SelectItem } from "@/components/ui/select";
+import { Button, SelectItem } from "@dblodorn/sound-ui";
 
 const slotLabel = (i: number): string => String(i + 1).padStart(2, "0");
 

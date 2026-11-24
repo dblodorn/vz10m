@@ -9,8 +9,7 @@ import { RESOURCES } from "../lib/resources";
 import { entry, fromB64, store, type Entry } from "../lib/store";
 import { NOTE, ROW, SMALL } from "./params";
 import Info from "./Info";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button, Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, TypeCredit } from "@dblodorn/sound-ui";
 
 // The LIBRARY sheet, in four tabs: LOCAL (voices and operations kept in this browser, imported from or exported
 // to .syx files), SHARED (the public list, components/Shared.tsx), BANKS (64-slot banks on this device,
@@ -110,10 +109,7 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
         {tab === "colophon" && (
           <ul role="tabpanel" id="lib-panel-colophon" aria-labelledby="lib-tab-colophon" className="m-0 grid list-none p-0">
             <li className="grid gap-1 border-t border-dashed border-foreground py-2">
-              <a href="https://aisforfonts.com/knif/" target="_blank" rel="noopener noreferrer"
-                className="w-fit tracking-[.06em] text-foreground underline underline-offset-3 outline-none focus-visible:outline-1 focus-visible:outline-offset-3 focus-visible:outline-dashed">
-                TYPE: KNIF MONO BY A IS FOR FONTS
-              </a>
+              <TypeCredit className="w-fit tracking-[.06em] text-foreground underline-offset-3 outline-none focus-visible:outline-1 focus-visible:outline-offset-3 focus-visible:outline-dashed" />
               <p className={NOTE}>The editor is set in Knif Mono, licensed from the foundry A is for fonts.</p>
             </li>
             <li className="grid gap-1 border-t border-dashed border-foreground py-2">

@@ -4,3 +4,7 @@ packages:
 
 allowBuilds:
   esbuild: true
+
+minimumReleaseAgeExclude:
+  - '@dblodorn/sound-tokens@0.1.0'
+  - '@dblodorn/sound-ui@0.2.0'

@@ -14,6 +14,7 @@ export const TYPES: Record<ChangeKind, ChangeType> = {
 };
 
 export const CHANGELOG: Change[] = [
+  { date: "2026-11-23", type: "ENHANCEMENT", text: "The editor is built from the sound design system: key follow points can be dragged, and each key row names its note." },
   { date: "2026-11-23", type: "ENHANCEMENT", text: "LIBRARY → COLOPHON links the sound design system (soundsystem.dmbk.io)." },
   { date: "2026-11-22", type: "ENHANCEMENT", text: "LIBRARY → RESOURCES is now COLOPHON, and credits the typeface: Knif Mono by A is for fonts." },
   { date: "2026-11-21", type: "FIX", text: "SOUND plays on iPhone with the ring/silent switch set to silent." },

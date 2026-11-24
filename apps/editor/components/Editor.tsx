@@ -15,9 +15,7 @@ import EnvelopeEditor from "./EnvelopeEditor";
 import Info from "./Info";
 import type { HelpKey } from "../lib/help";
 import { Check, FieldRow, NOTE, Param, ParamSelect, ROW, SMALL } from "./params";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { SelectItem } from "@/components/ui/select";
+import { BreakpointCurve, Button, Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, noteName, SelectItem } from "@dblodorn/sound-ui";
 
 const Library = dynamic(() => import("./Library"), { ssr: false });
 const KeyboardFloater = dynamic(() => import("./KeyboardFloater"), { ssr: false });
@@ -29,8 +27,6 @@ const MODULES = [1, 2, 3, 4, 5, 6, 7, 8];
 interface Device { id: string; label: string }
 const deviceName = (d: Device): string => (d.label || "UNNAMED DEVICE").toUpperCase();
 const portName = (p: PortInfo): string => p.name.toUpperCase() + (p.manufacturer ? "   " + p.manufacturer.toUpperCase() : "");
-const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const noteName = (n: number): string => NOTE_NAMES[n % 12]! + (Math.floor(n / 12) - 1);
 // computer keys for auditioning on the VZ: the bottom letter row plays C4 to C5
 const KEYS: Record<string, number> = { z: 60, s: 61, x: 62, d: 63, c: 64, v: 65, g: 66, b: 67, h: 68, n: 69, j: 70, m: 71, ",": 72 };
 
@@ -484,29 +480,20 @@ interface KeyFollowProps {
   onChange: (values: Record<string, number>) => void;
 }
 
-// six (key, value) breakpoints; keys are MIDI note numbers
+// six (key, value) breakpoints; keys are MIDI note numbers. The package's BreakpointCurve: drag a point sideways to
+// move its key, up and down for its value.
 function KeyFollow({ id, title, info, prefix, second, voice, onChange }: KeyFollowProps) {
-  const [step, setStep] = useState(1);
-  const key = `${prefix}.kf${step}.key`, other = `${prefix}.kf${step}.${second}`;
-  const pts = [1, 2, 3, 4, 5, 6].map(s => ({ s, key: V.get(voice, `${prefix}.kf${s}.key`), v: V.get(voice, `${prefix}.kf${s}.${second}`), max: voiceField(`${prefix}.kf${s}.${second}`).max }));
-  const W = 320, H = 60;
+  const f = (s: number, part: string): string => `${prefix}.kf${s}.${part}`;
+  const points = [1, 2, 3, 4, 5, 6].map(s => ({ key: V.get(voice, f(s, "key")), value: V.get(voice, f(s, second)) }));
+  const keyF = voiceField(f(1, "key")), valueF = voiceField(f(1, second));
   return (
-    <div role="group" aria-label={title} className="grid gap-2">
-      <Param id={`${id}-t`} label={title} value={`STEP ${step}`} info={info} />
-      <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full border border-foreground" aria-hidden="true">
-        <polyline fill="none" stroke="currentColor" points={pts.map(p => `${(p.key / 127) * W},${H - 4 - (p.v / p.max) * (H - 8)}`).join(" ")} />
-        {pts.map(p => <rect key={p.s} x={(p.key / 127) * W - 3} y={H - 4 - (p.v / p.max) * (H - 8) - 3} width="6" height="6" fill={p.s === step ? "currentColor" : "var(--background)"} stroke="currentColor" />)}
-      </svg>
-      <div role="tablist" aria-label={`${title} STEP`} className={`grid grid-cols-6 border border-foreground ${SMALL}`}>
-        {pts.map(p => (
-          <button key={p.s} role="tab" aria-selected={p.s === step} onClick={() => setStep(p.s)}
-            className="cursor-pointer border-l border-foreground bg-background py-1 text-foreground first:border-l-0 hover:bg-foreground hover:text-background aria-selected:bg-foreground aria-selected:text-background focus-visible:outline-1 focus-visible:-outline-offset-4 focus-visible:outline-dashed">
-            {p.s} {noteName(p.key)}
-          </button>
-        ))}
-      </div>
-      <FieldRow id={`${id}-key`} field={voiceField(key)} label={`STEP ${step} KEY`} value={V.get(voice, key)} onChange={v => onChange({ [key]: v })} />
-      <FieldRow id={`${id}-v`} field={voiceField(other)} label={`STEP ${step} ${voiceField(other).label}`} value={V.get(voice, other)} onChange={v => onChange({ [other]: v })} />
+    <div className="grid gap-2">
+      <Param id={`${id}-t`} label={title} value="" info={info} />
+      <BreakpointCurve
+        id={id} label={title} points={points} keyRange={[keyF.min, keyF.max]} valueRange={[valueF.min, valueF.max]}
+        onChange={(i, c) => onChange("key" in c ? { [f(i + 1, "key")]: c.key } : { [f(i + 1, second)]: c.value })}
+        keyLabel={i => `STEP ${i + 1} KEY`} valueLabel={i => `STEP ${i + 1} ${valueF.label}`} displayKey={noteName}
+      />
     </div>
   );
 }
