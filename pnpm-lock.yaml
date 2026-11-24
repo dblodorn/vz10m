@@ -175,8 +175,8 @@ importers:
         specifier: 0.1.0
         version: 0.1.0
       '@dblodorn/sound-ui':
-        specifier: 0.2.0
-        version: 0.2.0(@dblodorn/sound-tokens@0.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        specifier: 0.3.1
+        version: 0.3.1(@dblodorn/sound-tokens@0.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@sqlite.org/sqlite-wasm':
         specifier: 3.54.1-build1
         version: 3.54.1-build1
@@ -331,8 +331,8 @@ packages:
   '@dblodorn/sound-tokens@0.1.0':
     resolution: {integrity: sha512-tgJu7QY0Ak9dh+MUWGT12WMAOHiyee1YLir+WFFIXQ2YwYIrAlQCQt+HDQwUGNOIGp1fEMtp8mMkYkZaGNJ6iA==, tarball: https://npm.pkg.github.com/download/@dblodorn/sound-tokens/0.1.0/ae76f2f6abeca39700e9a16322af88b0eb904574}
 
-  '@dblodorn/sound-ui@0.2.0':
-    resolution: {integrity: sha512-dLfAbDESj6WlQ6J7qtQKR2t0WhcB3qFivbAnhiZxUL5OJTyklS/IxZNe7jgftMO30xnBtD+yvK9edEZcra/zqg==, tarball: https://npm.pkg.github.com/download/@dblodorn/sound-ui/0.2.0/bc6c7715cf5411ce77de96d4505f04ab609788b8}
+  '@dblodorn/sound-ui@0.3.1':
+    resolution: {integrity: sha512-WaXVgJVtQeAqloApn6dIXs8hUduir3v8nvj/iJ7aVcnKBpLRcbElQuLOwXRmLYsRCk3+ER6+eupsSaBYKz4h+g==, tarball: https://npm.pkg.github.com/download/@dblodorn/sound-ui/0.3.1/01f130b3d7b99a61a81de3ee743653303bfdaf41}
     peerDependencies:
       '@dblodorn/sound-tokens': '>=0.1.0 <1.0.0'
       react: ^19.0.0
@@ -2148,7 +2148,7 @@ snapshots:
 
   '@dblodorn/sound-tokens@0.1.0': {}
 
-  '@dblodorn/sound-ui@0.2.0(@dblodorn/sound-tokens@0.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@dblodorn/sound-ui@0.3.1(@dblodorn/sound-tokens@0.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@dblodorn/sound-tokens': 0.1.0
       class-variance-authority: 0.7.1

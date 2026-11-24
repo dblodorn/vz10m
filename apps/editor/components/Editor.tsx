@@ -493,6 +493,7 @@ function KeyFollow({ id, title, info, prefix, second, voice, onChange }: KeyFoll
         id={id} label={title} points={points} keyRange={[keyF.min, keyF.max]} valueRange={[valueF.min, valueF.max]}
         onChange={(i, c) => onChange("key" in c ? { [f(i + 1, "key")]: c.key } : { [f(i + 1, second)]: c.value })}
         keyLabel={i => `STEP ${i + 1} KEY`} valueLabel={i => `STEP ${i + 1} ${valueF.label}`} displayKey={noteName}
+        displayValue={valueF.display && (v => String(valueF.display!(v)))}
       />
     </div>
   );
