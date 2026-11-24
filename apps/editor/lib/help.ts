@@ -169,7 +169,7 @@ export const HELP = {
   sound: {
     title: "SOUND (EMULATOR)",
     body: [
-      "Plays the voice in the browser with an emulation of the VZ's iPD engine: 16 notes, 8 modules each, with lines, envelopes, key follow, velocity and the LFOs. It needs no hardware.",
+      "Plays the voice in the browser with an approximate emulation of the VZ's iPD engine, a stand-in for hearing your edits, not a replacement for the instrument: 16 notes, 8 modules each, with lines, envelopes, key follow, velocity and the LFOs. It needs no hardware.",
     ],
     editor: "The structure follows the manual, but several curves (rate speeds, level steps, saw shapes, modulation depth) are estimates until compared with recordings of a VZ-10M. Treat it as VZ-shaped, not yet VZ-exact.",
   },
@@ -193,7 +193,7 @@ export const HELP = {
       "LOCAL: voices and operations kept in this browser. IMPORT and EXPORT .SYX move them between machines and other editors; SEND puts one in the VZ's compare/recall area.",
       "SHARED: a public list anyone can open. SHARE CURRENT adds the voice you're editing. Voices marked YOURS were shared from this browser, and only it can rename, update or delete them, using a device key kept here (no account). Copy the key under DEVICE KEY to manage them from another browser.",
       "BANKS: sets of 64 voices kept on this device. PUT CURRENT fills a slot; ADD TO BANK in LOCAL and SHARED fills the chosen bank's first empty slot. EXPORT .SYX writes the filled slots as one file.",
-      "COLOPHON: the typeface (Knif Mono, by A is for fonts), then the owner's manual, patch archives and old VZ tools elsewhere on the web. Most archives hold whole-bank dumps, which IMPORT .SYX doesn't read yet; Casio's RC-100 to RC-140 ROM card voices are already in SHARED.",
+      "COLOPHON: the typeface (Knif Mono, by A is for fonts), what this editor is for, the prior work it builds on, then the owner's manual, patch archives and old VZ tools elsewhere on the web. Most archives hold whole-bank dumps, which IMPORT .SYX doesn't read yet; Casio's RC-100 to RC-140 ROM card voices are already in SHARED.",
     ],
     editor: "The VZ's own bank transfer (MENU 3-02) has no documented byte format, so a bank can't be sent into the VZ's memory from here; send its voices one at a time with SEND.",
   },

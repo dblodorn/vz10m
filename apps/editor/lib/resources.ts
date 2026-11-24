@@ -1,8 +1,21 @@
-// LIBRARY → RESOURCES: outside pages about the VZ-1 / VZ-10M, newest finds last. Free sources only; each line
+// LIBRARY → COLOPHON, after the typeface and the design system: ABOUT, then PRIOR WORK (every project, analysis or
+// reference the code or the sound draws on, credited even where no code was copied; a change that adds a source adds
+// its entry), then RESOURCES: outside pages about the VZ-1 / VZ-10M, newest finds last. Free sources only; each line
 // says what's there in terms a player can act on. Bulk dumps (a whole bank in one .syx) aren't read by IMPORT .SYX
 // yet; the Casio RC-100 to RC-140 ROM cards are already in SHARED.
 
 export interface Resource { name: string; url: string; text: string }
+
+export const ABOUT =
+  "An editor and librarian for the VZ-10M, and a way to learn how iPD synthesis works. The emulator that plays with SOUND is an approximate stand-in for the instrument, written from the owner's manual with several curves estimated, not a replacement for it: the hardware is the reference.";
+
+export const PRIOR_WORK: Resource[] = [
+  {
+    name: "VZEDITOR (RIBAN)",
+    url: "https://github.com/riban-bw/vzeditor",
+    text: "riban's open VZ-1 editor (LGPL-3.0): the reference for the SysEx header and how voice and operation data are laid out.",
+  },
+];
 
 export const RESOURCES: Resource[] = [
   {

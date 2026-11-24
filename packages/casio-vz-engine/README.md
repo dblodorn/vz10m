@@ -4,6 +4,8 @@ The Casio VZ-1 / VZ-10M emulator as a sound source. Load a voice, play notes. It
 
 The package only plays voices. It can read a voice (its name and field values), but it has no way to change one, build SysEx or send MIDI. For editing, use the [VZ-10M editor](https://github.com/dblodorn/vz10m), which this package comes from.
 
+It is an approximate stand-in for the VZ, written from the owner's manual with several curves estimated, made for hearing voices while editing and for learning, not a replacement for the instrument.
+
 The sound comes from an emulation, and its curves are estimates that haven't been checked against the hardware yet. A release that changes how a voice sounds says so in the changelog.
 
 ## Install

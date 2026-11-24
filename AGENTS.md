@@ -115,7 +115,9 @@ Every emulator gets the same shape, so a future DX7 repo copies this one (`opens
 - **Raw values in the UI** until the panel-scale conversions are confirmed. Only give a field `display` where a source states the conversion.
 - **SSR:** neither `lib/*` nor the package touches `window`, `document`, `navigator` or `localStorage` at module top level. Capability checks and storage reads happen in a mount effect. Listeners return unsubscribe functions (strict mode).
 - **MIDI access only on a click** (CONNECT MIDI), with `sysex: true`. Chrome/Edge only in practice; Safari has no Web MIDI.
-- **Typeface credit:** LIBRARY → COLOPHON credits Knif Mono first with the package's `TypeCredit` (TYPE: KNIF MONO BY A IS FOR FONTS, https://aisforfonts.com/knif/), then links SOUND DESIGN SYSTEM (https://soundsystem.dmbk.io/). It's licensed under A is for fonts' webfont EULA; keep the credit.
+- **Typeface credit:** LIBRARY → COLOPHON credits Knif Mono first with the package's `TypeCredit` (TYPE: KNIF MONO BY A IS FOR FONTS, https://aisforfonts.com/knif/), then links SOUND DESIGN SYSTEM (https://soundsystem.dmbk.io/). It's licensed under A is for fonts' webfont EULA; keep the credit. Then `lib/resources.ts`: ABOUT, PRIOR WORK, RESOURCES.
+- **Prior work is always credited** in COLOPHON → PRIOR WORK (`PRIOR_WORK` in `lib/resources.ts`): every project, analysis, port, table or reference the code or the sound draws on, with a link and what was taken, even where no code was copied. A change that adds a source adds its entry.
+- **The emulator is an approximate stand-in.** The editor and librarian are the point, with learning the VZ; ABOUT, the SOUND (?) note and both READMEs say so. Never call the emulator accurate or authentic.
 - **UI = the sound design system's 1-bit language** (windchime's, now in `@dblodorn/sound-ui`):
   - every token `#000`/`#fff`, no radius, no shadows, no dark mode
   - Knif Mono; uppercase labels; text instead of icons
