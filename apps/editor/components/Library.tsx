@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import * as V from "../lib/vz/codec";
 import * as Bc from "../lib/banks/client";
 import { download, fileName } from "../lib/files";
-import { RESOURCES } from "../lib/resources";
+import { ABOUT, PRIOR_WORK, RESOURCES } from "../lib/resources";
 import { entry, fromB64, store, type Entry } from "../lib/store";
 import { NOTE, ROW, SMALL } from "./params";
 import Info from "./Info";
@@ -104,7 +104,7 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
           {tab === "local" ? "Kept in this browser. Import and export .syx files to move dumps between machines."
             : tab === "shared" ? "Voices anyone can open. What you share here is public, and names are checked before they're listed."
             : tab === "banks" ? "Banks of 64 voices, kept on this device only. Build them from the voice you're editing, your library and the shared list, then export them as .syx."
-            : "The typeface and the design system, then manuals, patch archives and tools elsewhere on the web. They open in a new tab. Casio's RC-100 to RC-140 ROM card voices are already in SHARED."}
+            : "The typeface and the design system, what this editor is for, the work it builds on, then manuals, patch archives and tools elsewhere on the web. Links open in a new tab. Casio's RC-100 to RC-140 ROM card voices are already in SHARED."}
         </SheetDescription>
         {tab === "colophon" && (
           <ul role="tabpanel" id="lib-panel-colophon" aria-labelledby="lib-tab-colophon" className="m-0 grid list-none p-0">
@@ -119,15 +119,20 @@ export default function Library({ open, onOpenChange, library, updateLibrary, vo
               </a>
               <p className={NOTE}>The controls, type and colors this editor shares with Chime and the DX7 editor.</p>
             </li>
-            {RESOURCES.map(r => (
-              <li key={r.url} className="grid gap-1 border-t border-dashed border-foreground py-2">
-                <a href={r.url} target="_blank" rel="noopener noreferrer"
-                  className="w-fit tracking-[.06em] text-foreground underline underline-offset-3 outline-none focus-visible:outline-1 focus-visible:outline-offset-3 focus-visible:outline-dashed">
-                  {r.name}
-                </a>
-                <p className={NOTE}>{r.text}</p>
-              </li>
-            ))}
+            <li><h3 className="m-0 pt-3 text-[10px] font-normal tracking-[.08em]">ABOUT</h3></li>
+            <li className="grid gap-1 border-t border-dashed border-foreground py-2"><p className={NOTE}>{ABOUT}</p></li>
+            {([["PRIOR WORK", PRIOR_WORK], ["RESOURCES", RESOURCES]] as const).map(([title, list]) => [
+              <li key={title}><h3 className="m-0 pt-3 text-[10px] font-normal tracking-[.08em]">{title}</h3></li>,
+              ...list.map(r => (
+                <li key={r.url} className="grid gap-1 border-t border-dashed border-foreground py-2">
+                  <a href={r.url} target="_blank" rel="noopener noreferrer"
+                    className="w-fit tracking-[.06em] text-foreground underline underline-offset-3 outline-none focus-visible:outline-1 focus-visible:outline-offset-3 focus-visible:outline-dashed">
+                    {r.name}
+                  </a>
+                  <p className={NOTE}>{r.text}</p>
+                </li>
+              )),
+            ])}
           </ul>
         )}
         {(tab === "shared" || tab === "banks") && (
