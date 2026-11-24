@@ -18,7 +18,7 @@
   "dependencies": {
     "@dblodorn/casio-vz-engine": "workspace:*",
     "@dblodorn/sound-tokens": "0.1.0",
-    "@dblodorn/sound-ui": "0.3.1",
+    "@dblodorn/sound-ui": "0.3.2",
     "@sqlite.org/sqlite-wasm": "3.54.1-build1",
     "next": "^15.5.7",
     "obscenity": "0.4.5",
